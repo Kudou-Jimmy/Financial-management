@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#5BADE6">
+  <title>薪資計算機</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- SheetJS -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- docx -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #5BADE6;
+      --primary-dark: #3D95D4;
+      --primary-light: #8DC8F0;
+      --primary-bg: rgba(91,173,230,0.08);
+      --primary-glow: rgba(91,173,230,0.2);
+      --accent: #6BB8E8;
+      --accent-light: #B0DBF5;
+      --danger: #E07A5F;
+      --danger-bg: rgba(224,122,95,0.1);
+      --success: #5BAD8A;
+      --success-bg: rgba(91,173,138,0.1);
+      --warning: #E6B44C;
+      --warning-bg: rgba(230,180,76,0.1);
+      --gradient-primary: linear-gradient(135deg, #5BADE6 0%, #8DC8F0 100%);
+      --gradient-accent: linear-gradient(135deg, #5BAD8A 0%, #8FD4B4 100%);
+      --gradient-warm: linear-gradient(135deg, #6BB8E8 0%, #B0DBF5 100%);
+      --gradient-header: linear-gradient(135deg, #2E7AB8 0%, #5BADE6 50%, #8DC8F0 100%);
+      --bg: #F3F8FC;
+      --bg-secondary: #E6F0F8;
+      --card-bg: #FFFFFF;
+      --glass: rgba(255,255,255,0.78);
+      --glass-border: rgba(255,255,255,0.5);
+      --text: #1E3A50;
+      --text-secondary: #6B8CA8;
+      --text-light: #9AB4C8;
+      --border: #D6E6F0;
+      --nav-height: 68px;
+      --header-height: 64px;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
+      --shadow-sm: 0 2px 8px rgba(40,100,160,0.05);
+      --shadow: 0 4px 20px rgba(40,100,160,0.08);
+      --shadow-lg: 0 8px 40px rgba(40,100,160,0.10);
+      --shadow-glow: 0 4px 24px rgba(91,173,230,0.20);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 8px);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--text-light); border-radius: 4px; }
+
+    /* ===== Header ===== */
+    #app-header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--gradient-header);
+      color: white;
+      padding: 0 20px;
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 24px rgba(139,69,19,0.12);
+    }
+    #app-header::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; left: 0; right: 0;
+      height: 20px;
+      background: linear-gradient(to bottom, rgba(139,69,19,0.04), transparent);
+      pointer-events: none;
+    }
+    #app-header h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #app-header h1::before {
+      content: '';
+      display: inline-block;
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z'/%3E%3C/svg%3E");
+      background-size: 18px;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    #month-nav {
+      display: flex; align-items: center; gap: 6px;
+    }
+    #month-nav button {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: white;
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+    #month-nav button:hover { background: rgba(255,255,255,0.25); }
+    #month-nav button:active { transform: scale(0.92); }
+    #month-nav button svg { width: 16px; height: 16px; fill: white; }
+    #month-label {
+      font-size: 13px;
+      font-weight: 600;
+      min-width: 88px;
+      text-align: center;
+      opacity: 0.95;
+    }
+
+    /* ===== Tab Panels ===== */
+    .tab-panel {
+      display: none;
+      padding: 20px 16px;
+      max-width: 540px;
+      margin: 0 auto;
+      animation: fadeIn 0.3s ease;
+    }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== Bottom Nav ===== */
+    #bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      background: var(--glass);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      height: calc(var(--nav-height) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+    }
+    .nav-btn {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px;
+      border: none; background: none;
+      color: var(--text-light);
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 8px 0;
+      transition: var(--transition);
+    }
+    .nav-btn .nav-icon {
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+      transition: var(--transition);
+    }
+    .nav-btn .nav-icon svg { width: 20px; height: 20px; transition: var(--transition); }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn.active .nav-icon { background: var(--primary-bg); transform: scale(1.1); }
+    .nav-btn.active .nav-icon svg { fill: var(--primary); }
+    .nav-btn:not(.active) .nav-icon svg { fill: var(--text-light); }
+    .nav-btn:active { transform: scale(0.92); }
+
+    /* ===== Cards ===== */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+
+    /* ===== Form Elements ===== */
+    .form-group { margin-bottom: 18px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      transition: var(--transition);
+      -webkit-appearance: none;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 4px var(--primary-glow);
+    }
+    .form-control::placeholder { color: var(--text-light); }
+    select.form-control {
+      padding-right: 36px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%238C7B6B'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+    textarea.form-control { resize: vertical; min-height: 56px; line-height: 1.5; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+
+    /* ===== Toggle Switch ===== */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+    .toggle-row:first-child { border-top: none; margin-top: 0; }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .toggle-label svg { width: 18px; height: 18px; fill: var(--text-secondary); }
+    .toggle-label small {
+      display: block;
+      font-size: 11px;
+      color: var(--text-light);
+      font-weight: 400;
+      margin-top: 1px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 48px; height: 28px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 22px; height: 22px;
+      left: 3px; bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: var(--transition);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--primary);
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+    .break-options {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.2s ease, margin 0.3s ease;
+      margin-top: 0;
+    }
+    .break-options.open {
+      max-height: 200px;
+      opacity: 1;
+      margin-top: 12px;
+    }
+    .break-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .break-chip {
+      padding: 8px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .break-chip:hover { border-color: var(--primary-light); }
+    .break-chip.selected {
+      background: var(--primary-bg);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .break-chip:active { transform: scale(0.95); }
+    .break-custom-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .break-custom-row input {
+      width: 80px;
+      padding: 8px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xs);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      text-align: center;
+    }
+    .break-custom-row input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .break-custom-row span {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 24px;
+      border: none; border-radius: var(--radius-sm);
+      font-size: 15px; font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: var(--transition);
+      gap: 8px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: white;
+      box-shadow: var(--shadow-glow);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 30px rgba(218,119,86,0.28); }
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      box-shadow: 0 4px 16px rgba(224,122,95,0.2);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text);
+    }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+    .btn-sm { padding: 8px 16px; font-size: 13px; width: auto; border-radius: var(--radius-xs); }
+    .btn-ghost {
+      background: var(--primary-bg);
+      color: var(--primary);
+      border: none;
+      font-weight: 600;
+    }
+    .btn-ghost:hover { background: rgba(218,119,86,0.15); }
+
+    /* ===== Preview Box ===== */
+    .preview-box {
+      background: var(--gradient-primary);
+      border-radius: var(--radius);
+      padding: 24px 18px;
+      text-align: center;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-glow);
+    }
+    .preview-box::before {
+      content: '';
+      position: absolute;
+      top: -50%; right: -30%;
+      width: 200px; height: 200px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50%;
+    }
+    .preview-box::after {
+      content: '';
+      position: absolute;
+      bottom: -40%; left: -20%;
+      width: 160px; height: 160px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    .preview-amount {
+      font-size: 36px;
+      font-weight: 800;
+      color: white;
+      position: relative;
+      z-index: 1;
+      letter-spacing: -1px;
+    }
+    .preview-detail {
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      margin-top: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    .preview-break {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== Record List ===== */
+    .record-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 10px;
+      transition: var(--transition);
+    }
+    .record-card:active { transform: scale(0.99); box-shadow: var(--shadow); }
+    .record-color {
+      width: 5px;
+      border-radius: 3px;
+      align-self: stretch;
+      min-height: 44px;
+      flex-shrink: 0;
+    }
+    .record-info { flex: 1; min-width: 0; }
+    .record-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .record-job { font-weight: 700; font-size: 15px; letter-spacing: -0.2px; }
+    .record-pay {
+      font-weight: 800;
+      font-size: 16px;
+      white-space: nowrap;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .record-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 5px;
+      display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: center;
+    }
+    .record-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .record-meta svg { width: 12px; height: 12px; fill: var(--text-light); flex-shrink: 0; }
+    .record-break-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(230,180,76,0.12);
+      color: #B8860B;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .record-break-tag svg { width: 11px; height: 11px; fill: #B8860B; }
+    .record-note {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      padding: 6px 10px;
+      background: var(--bg);
+      border-radius: var(--radius-xs);
+      line-height: 1.4;
+    }
+    .record-actions {
+      display: flex; gap: 2px;
+      flex-shrink: 0;
+    }
+    .record-actions button {
+      background: none; border: none;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+      color: var(--text-light);
+    }
+    .record-actions button:hover { background: var(--bg); color: var(--text-secondary); }
+    .record-actions button svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* ===== Monthly Summary Bar ===== */
+    .month-summary {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .summary-card {
+      flex: 1;
+      border-radius: var(--radius);
+      padding: 16px 12px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .summary-card:nth-child(1) { background: var(--gradient-primary); color: white; box-shadow: var(--shadow-glow); }
+    .summary-card:nth-child(2) { background: var(--gradient-accent); color: white; box-shadow: 0 4px 16px rgba(107,158,120,0.2); }
+    .summary-card:nth-child(3) { background: var(--gradient-warm); color: white; box-shadow: 0 4px 16px rgba(196,149,106,0.2); }
+    .summary-card::after {
+      content: '';
+      position: absolute;
+      top: -30%; right: -20%;
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 50%;
+    }
+    .summary-value {
+      font-size: 18px;
+      font-weight: 800;
+      position: relative;
+      z-index: 1;
+      letter-spacing: -0.5px;
+    }
+    .summary-label {
+      font-size: 10px;
+      font-weight: 500;
+      margin-top: 4px;
+      opacity: 0.85;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== Progress Bar ===== */
+    .progress-section {
+      margin-bottom: 18px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+    .progress-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .progress-title svg { width: 18px; height: 18px; fill: var(--warning); }
+    .progress-text { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .progress-bar {
+      height: 14px;
+      background: var(--bg-secondary);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 7px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      background: var(--gradient-primary);
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+      animation: shimmer 2s infinite;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .progress-fill.low { background: linear-gradient(90deg, var(--danger), #F4A261); }
+    .progress-fill.mid { background: linear-gradient(90deg, #E6B44C, #F4A261); }
+    .progress-pct {
+      display: block;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 800;
+      margin-top: 10px;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ===== Chart ===== */
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-height: 260px;
+      padding: 4px 0;
+    }
+    .chart-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chart-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px; height: 16px;
+      background: var(--gradient-primary);
+      border-radius: 2px;
+    }
+
+    /* ===== Settings ===== */
+    .settings-section { margin-bottom: 28px; }
+    .settings-section h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: -0.3px;
+    }
+    .job-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .job-item:last-child { border-bottom: none; }
+    .job-item:active { background: var(--bg); }
+    .job-color-dot {
+      width: 14px; height: 14px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .job-item-info { flex: 1; min-width: 0; }
+    .job-item-name {
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .job-item-rate { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .job-item-actions { display: flex; gap: 6px; }
+    .job-item-actions button {
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+      color: var(--text-secondary);
+      font-size: 14px;
+      padding: 0;
+    }
+    .job-item-actions button:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+    .job-item-actions button.danger-hover:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+    .job-item-actions button svg { width: 14px; height: 14px; fill: currentColor; }
+
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .export-btn {
+      padding: 18px 8px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+    .export-btn:hover {
+      border-color: var(--primary-light);
+      box-shadow: var(--shadow);
+      transform: translateY(-2px);
+    }
+    .export-btn:active {
+      transform: translateY(0) scale(0.97);
+      border-color: var(--primary);
+      background: var(--primary-bg);
+    }
+    .export-btn .export-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px; height: 44px;
+      margin: 0 auto 8px;
+      border-radius: 12px;
+      font-size: 20px;
+    }
+    .export-btn[data-format="json"] .export-icon { background: linear-gradient(135deg, #7B6B5A, #3D2E1F); color: white; }
+    .export-btn[data-format="csv"] .export-icon { background: linear-gradient(135deg, #6B9E78, #A3C9A8); color: white; }
+    .export-btn[data-format="markdown"] .export-icon { background: linear-gradient(135deg, #5BADE6, #8DC8F0); color: white; }
+    .export-btn[data-format="xlsx"] .export-icon { background: linear-gradient(135deg, #4E8B3E, #6B9E78); color: white; }
+    .export-btn[data-format="docx"] .export-icon { background: linear-gradient(135deg, #5B7FB5, #8BADD4); color: white; }
+    .export-btn[data-format="pdf"] .export-icon { background: linear-gradient(135deg, #3D95D4, #5BADE6); color: white; }
+    .export-btn .export-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+
+    /* ===== Modal ===== */
+    #modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #modal-overlay.show { display: flex; }
+    #modal-content {
+      background: var(--card-bg);
+      border-radius: 20px 20px 0 0;
+      padding: 8px 20px calc(24px + var(--safe-bottom));
+      width: 100%;
+      max-width: 540px;
+      max-height: 88vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #modal-content::before {
+      content: '';
+      display: block;
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 8px auto 16px;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .modal-close {
+      background: var(--bg);
+      border: none;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 18px; cursor: pointer;
+      color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+    .modal-close:hover { background: var(--border); }
+
+    /* ===== Toast ===== */
+    #toast-container {
+      position: fixed;
+      top: calc(var(--header-height) + 16px);
+      left: 50%; transform: translateX(-50%);
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--text);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      animation: toastIn 2.8s ease forwards;
+      white-space: nowrap;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+    .toast::before { font-size: 16px; }
+    .toast.success::before { content: '\2713'; }
+    .toast.error::before { content: '\2717'; }
+    @keyframes toastIn {
+      0% { opacity: 0; transform: translateY(-12px) scale(0.95); }
+      12% { opacity: 1; transform: translateY(0) scale(1); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-8px); }
+    }
+
+    /* ===== Empty State ===== */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-secondary);
+    }
+    .empty-state .empty-icon {
+      width: 80px; height: 80px;
+      margin: 0 auto 16px;
+      background: var(--bg-secondary);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* ===== Tags ===== */
+    .inline-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tag-hourly { background: rgba(218,119,86,0.1); color: var(--primary); }
+    .tag-perSession { background: rgba(107,158,120,0.1); color: #6B9E78; }
+    .tag-daily { background: rgba(196,149,106,0.12); color: #8B6914; }
+
+    /* ===== Misc ===== */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .mb-8 { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .section-empty-hint {
+      text-align: center;
+      color: var(--text-light);
+      font-size: 13px;
+      padding: 20px 0;
+    }
+
+    @media (min-width: 768px) {
+      .tab-panel { padding: 24px; }
+      .month-summary { gap: 14px; }
+      .export-grid { gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header id="app-header">
+    <h1>薪資計算機</h1>
+    <div id="month-nav">
+      <button id="month-prev" aria-label="上個月">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+      <span id="month-label"></span>
+      <button id="month-next" aria-label="下個月">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Tab: 新增紀錄 -->
+  <section id="tab-add" class="tab-panel active">
+    <div class="card">
+      <div class="form-group">
+        <label>工作類型</label>
+        <select id="add-job" class="form-control">
+          <option value="">請先至設定新增工作類型</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="add-date" class="form-control">
+      </div>
+
+      <div class="form-row" id="time-row">
+        <div class="form-group">
+          <label>開始時間</label>
+          <input type="time" id="add-start" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>結束時間</label>
+          <input type="time" id="add-end" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-row" id="session-row" style="display:none;">
+        <div class="form-group">
+          <label>堂數</label>
+          <input type="number" id="add-sessions" class="form-control" value="1" min="1" step="1">
+        </div>
+        <div class="form-group">
+          <label>每堂時長（分鐘）</label>
+          <input type="number" id="add-session-duration" class="form-control" readonly>
+        </div>
+      </div>
+
+      <div class="form-group" id="manual-duration-group" style="display:none;">
+        <label>工作時數（小時）</label>
+        <input type="number" id="add-manual-hours" class="form-control" min="0" step="0.5" placeholder="手動輸入時數">
+      </div>
+
+      <!-- Break Time Section -->
+      <div id="break-section">
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+            <div>
+              中午休息
+              <small>扣除休息時間不計薪</small>
+            </div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="add-break-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="break-options" id="break-options">
+          <div class="break-chips" id="break-chips">
+            <button class="break-chip" data-minutes="30">30 分鐘</button>
+            <button class="break-chip selected" data-minutes="60">1 小時</button>
+            <button class="break-chip" data-minutes="90">1.5 小時</button>
+            <button class="break-chip" data-minutes="0">自訂</button>
+          </div>
+          <div class="break-custom-row" id="break-custom-row" style="display:none;">
+            <input type="number" id="add-break-custom" min="1" max="480" placeholder="分鐘">
+            <span>分鐘</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:16px;">
+        <label>備註</label>
+        <textarea id="add-note" class="form-control" rows="2" placeholder="選填"></textarea>
+      </div>
+    </div>
+
+    <div class="preview-box" id="pay-preview">
+      <div class="preview-amount" id="preview-amount">NT$ 0</div>
+      <div class="preview-detail" id="preview-detail">請選擇工作類型並填寫時間</div>
+      <div class="preview-break" id="preview-break"></div>
+    </div>
+
+    <button class="btn btn-primary" id="add-submit">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      新增紀錄
+    </button>
+  </section>
+
+  <!-- Tab: 紀錄列表 -->
+  <section id="tab-list" class="tab-panel">
+    <div class="month-summary" id="list-summary"></div>
+    <div id="record-list"></div>
+  </section>
+
+  <!-- Tab: 統計總覽 -->
+  <section id="tab-stats" class="tab-panel">
+    <div id="target-section"></div>
+    <div class="month-summary" id="stats-summary"></div>
+    <div class="card">
+      <div class="chart-title">收入分布</div>
+      <div class="chart-container"><canvas id="chart-pie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="chart-title">每日薪資</div>
+      <div class="chart-container"><canvas id="chart-daily"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="chart-title">月度趨勢（近12個月）</div>
+      <div class="chart-container"><canvas id="chart-monthly"></canvas></div>
+    </div>
+  </section>
+
+  <!-- Tab: 設定 -->
+  <section id="tab-settings" class="tab-panel">
+    <div class="settings-section">
+      <h3>工作類型管理 <button class="btn btn-sm btn-ghost" id="btn-add-job">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        新增
+      </button></h3>
+      <div class="card" id="job-list" style="padding:0;overflow:hidden;"></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>目標月薪</h3>
+      <div class="card">
+        <div class="form-group">
+          <label>每月目標金額</label>
+          <input type="number" id="target-salary" class="form-control" placeholder="例：30000" min="0">
+        </div>
+        <button class="btn btn-outline" id="btn-save-target" style="margin-top:4px;">儲存目標</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>匯出資料</h3>
+      <div class="card">
+        <div class="form-group">
+          <label>匯出範圍</label>
+          <select id="export-range" class="form-control">
+            <option value="current">當月紀錄</option>
+            <option value="all">全部紀錄</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>匯出對象</label>
+          <select id="export-job" class="form-control">
+            <option value="all">全部工作</option>
+          </select>
+        </div>
+        <div class="form-group" id="export-mode-group" style="display:none;">
+          <label>匯出模式</label>
+          <div style="display:flex;gap:8px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;"><input type="radio" name="export-mode" value="single" checked> 單一檔案</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;"><input type="radio" name="export-mode" value="perJob"> 每個工作各一份</label>
+          </div>
+        </div>
+        <div class="export-grid">
+          <button class="export-btn" data-format="json"><span class="export-icon">{ }</span><span class="export-label">JSON</span></button>
+          <button class="export-btn" data-format="csv"><span class="export-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg></span><span class="export-label">CSV</span></button>
+          <button class="export-btn" data-format="markdown"><span class="export-icon">MD</span><span class="export-label">Markdown</span></button>
+          <button class="export-btn" data-format="xlsx"><span class="export-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg></span><span class="export-label">Excel</span></button>
+          <button class="export-btn" data-format="docx"><span class="export-icon">W</span><span class="export-label">Word</span></button>
+          <button class="export-btn" data-format="pdf"><span class="export-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg></span><span class="export-label">PDF</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>資料管理</h3>
+      <div class="card">
+        <button class="btn btn-outline mb-12" id="btn-import">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+          匯入 JSON 備份
+        </button>
+        <input type="file" id="import-file" accept=".json" style="display:none;">
+        <button class="btn btn-danger" id="btn-clear-data">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          清除所有資料
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom Nav -->
+  <nav id="bottom-nav">
+    <button class="nav-btn active" data-tab="0">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
+      <span>新增紀錄</span>
+    </button>
+    <button class="nav-btn" data-tab="1">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></span>
+      <span>紀錄列表</span>
+    </button>
+    <button class="nav-btn" data-tab="2">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z"/></svg></span>
+      <span>統計總覽</span>
+    </button>
+    <button class="nav-btn" data-tab="3">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></span>
+      <span>設定</span>
+    </button>
+  </nav>
+
+  <div id="modal-overlay"><div id="modal-content"></div></div>
+  <div id="toast-container"></div>
+
+<script>
+// ===================================================================
+// 1. UTILITIES
+// ===================================================================
+const Utils = {
+  generateId() {
+    return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+  },
+  formatCurrency(n) {
+    return 'NT$ ' + Math.round(n).toLocaleString('zh-TW');
+  },
+  formatDate(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return `${d.getMonth() + 1}/${d.getDate()}（${['日','一','二','三','四','五','六'][d.getDay()]}）`;
+  },
+  formatDuration(minutes) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m} 分鐘`;
+    if (m === 0) return `${h} 小時`;
+    return `${h} 小時 ${m} 分鐘`;
+  },
+  formatDurationShort(minutes) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h${m}m`;
+  },
+  timeToMinutes(t) {
+    if (!t) return null;
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  },
+  todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  },
+  billingLabel(type) {
+    return { hourly: '時薪制', perSession: '堂數制', daily: '日薪制' }[type] || type;
+  },
+  billingTag(type) {
+    return { hourly: 'tag-hourly', perSession: 'tag-perSession', daily: 'tag-daily' }[type] || '';
+  },
+  daysInMonth(y, m) { return new Date(y, m, 0).getDate(); },
+  monthStr(y, m) { return `${y} 年 ${m} 月`; },
+  fileMonthStr(y, m) { return `${y}-${String(m).padStart(2,'0')}`; },
+  defaultColors: ['#5BADE6','#5BAD8A','#6BB8E8','#E07A5F','#3D95D4','#E6B44C','#2E7AB8','#8FD4B4','#8DC8F0','#7B9AAF'],
+  nextColor(existingColors) {
+    for (const c of Utils.defaultColors) {
+      if (!existingColors.includes(c)) return c;
+    }
+    return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
+  },
+  icons: {
+    calendar: '<svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>',
+    clock: '<svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>',
+    timer: '<svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>',
+    edit: '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
+    trash: '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
+    sessions: '<svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>',
+    coffee: '<svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>'
+  }
+};
+
+// ===================================================================
+// 2. DATA STORE
+// ===================================================================
+const DataStore = {
+  KEYS: { jobs: 'wageTracker_jobs', records: 'wageTracker_records', settings: 'wageTracker_settings' },
+  load(key) {
+    try { return JSON.parse(localStorage.getItem(key)) || (key === this.KEYS.settings ? {} : []); }
+    catch { return key === this.KEYS.settings ? {} : []; }
+  },
+  save(key, data) { localStorage.setItem(key, JSON.stringify(data)); },
+  getJobs()    { return this.load(this.KEYS.jobs); },
+  saveJobs(d)  { this.save(this.KEYS.jobs, d); },
+  getRecords() { return this.load(this.KEYS.records); },
+  saveRecords(d) { this.save(this.KEYS.records, d); },
+  getSettings(){ return this.load(this.KEYS.settings); },
+  saveSettings(d){ this.save(this.KEYS.settings, d); },
+  exportAll() {
+    return { jobs: this.getJobs(), records: this.getRecords(), settings: this.getSettings(), exportedAt: new Date().toISOString(), version: '1.0' };
+  },
+  importAll(data) {
+    if (data.jobs) this.saveJobs(data.jobs);
+    if (data.records) this.saveRecords(data.records);
+    if (data.settings) this.saveSettings(data.settings);
+  },
+  clearAll() { Object.values(this.KEYS).forEach(k => localStorage.removeItem(k)); }
+};
+
+// ===================================================================
+// 3. JOB MANAGER
+// ===================================================================
+const JobManager = {
+  getAll()   { return DataStore.getJobs(); },
+  getActive() { return this.getAll().filter(j => j.isActive !== false); },
+  getById(id) { return this.getAll().find(j => j.id === id); },
+  create(data) {
+    const jobs = this.getAll();
+    const job = {
+      id: Utils.generateId(), name: data.name, billingType: data.billingType,
+      rate: Number(data.rate),
+      sessionDurationMinutes: data.billingType === 'perSession' ? Number(data.sessionDurationMinutes || 60) : null,
+      color: data.color || Utils.nextColor(jobs.map(j => j.color)),
+      notes: data.notes || '', isActive: true,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    };
+    jobs.push(job);
+    DataStore.saveJobs(jobs);
+    return job;
+  },
+  update(id, data) {
+    const jobs = this.getAll();
+    const idx = jobs.findIndex(j => j.id === id);
+    if (idx === -1) return null;
+    Object.assign(jobs[idx], data, { updatedAt: new Date().toISOString() });
+    if (jobs[idx].billingType !== 'perSession') jobs[idx].sessionDurationMinutes = null;
+    DataStore.saveJobs(jobs);
+    return jobs[idx];
+  },
+  delete(id) { DataStore.saveJobs(this.getAll().filter(j => j.id !== id)); },
+  calculatePay(job, record) {
+    if (record.manualPayOverride != null) return record.manualPayOverride;
+    switch (job.billingType) {
+      case 'hourly':
+        return job.rate * ((record.durationMinutes || 0) / 60);
+      case 'perSession':
+        return job.rate * (record.sessions || 1);
+      case 'daily':
+        return job.rate;
+      default: return 0;
+    }
+  }
+};
+
+// ===================================================================
+// 4. RECORD MANAGER
+// ===================================================================
+const RecordManager = {
+  getAll()     { return DataStore.getRecords(); },
+  getByMonth(y, m) {
+    const prefix = Utils.fileMonthStr(y, m);
+    return this.getAll().filter(r => r.date.startsWith(prefix));
+  },
+  create(data) {
+    const records = this.getAll();
+    const job = JobManager.getById(data.jobId);
+    if (!job) return null;
+    const record = {
+      id: Utils.generateId(), jobId: data.jobId, date: data.date,
+      startTime: data.startTime || null, endTime: data.endTime || null,
+      durationMinutes: data.durationMinutes || 0,
+      breakMinutes: data.breakMinutes || 0,
+      sessions: data.sessions || 1, calculatedPay: 0,
+      manualPayOverride: data.manualPayOverride ?? null,
+      notes: data.notes || '', createdAt: new Date().toISOString()
+    };
+    record.calculatedPay = JobManager.calculatePay(job, record);
+    records.push(record);
+    DataStore.saveRecords(records);
+    return record;
+  },
+  update(id, data) {
+    const records = this.getAll();
+    const idx = records.findIndex(r => r.id === id);
+    if (idx === -1) return null;
+    Object.assign(records[idx], data, { updatedAt: new Date().toISOString() });
+    const job = JobManager.getById(records[idx].jobId);
+    if (job) records[idx].calculatedPay = JobManager.calculatePay(job, records[idx]);
+    DataStore.saveRecords(records);
+    return records[idx];
+  },
+  delete(id) { DataStore.saveRecords(this.getAll().filter(r => r.id !== id)); },
+  getMonthlySummary(y, m) {
+    const records = this.getByMonth(y, m);
+    const byJob = {};
+    let totalPay = 0, totalMinutes = 0;
+    for (const r of records) {
+      const job = JobManager.getById(r.jobId);
+      const name = job ? job.name : '未知';
+      const color = job ? job.color : '#999';
+      if (!byJob[r.jobId]) byJob[r.jobId] = { jobId: r.jobId, jobName: name, color, totalPay: 0, totalMinutes: 0, count: 0 };
+      byJob[r.jobId].totalPay += r.calculatedPay;
+      byJob[r.jobId].totalMinutes += r.durationMinutes || 0;
+      byJob[r.jobId].count++;
+      totalPay += r.calculatedPay;
+      totalMinutes += r.durationMinutes || 0;
+    }
+    return { totalPay, totalMinutes, recordCount: records.length, byJob: Object.values(byJob) };
+  },
+  getMonthlyTotals(y) {
+    const results = [];
+    for (let m = 1; m <= 12; m++) {
+      const recs = this.getByMonth(y, m);
+      results.push({ month: m, totalPay: recs.reduce((s, r) => s + r.calculatedPay, 0) });
+    }
+    return results;
+  },
+  getDailyTotals(y, m) {
+    const days = Utils.daysInMonth(y, m);
+    const totals = new Array(days).fill(0);
+    for (const r of this.getByMonth(y, m)) {
+      const day = parseInt(r.date.slice(8));
+      totals[day - 1] += r.calculatedPay;
+    }
+    return totals;
+  }
+};
+
+// ===================================================================
+// 5. CHART MANAGER
+// ===================================================================
+const ChartManager = {
+  charts: {},
+  destroy(name) { if (this.charts[name]) { this.charts[name].destroy(); delete this.charts[name]; } },
+  destroyAll() { Object.keys(this.charts).forEach(k => this.destroy(k)); },
+  commonOpts() {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { family: "'Inter','Noto Sans TC',sans-serif", size: 11 }, padding: 14, usePointStyle: true, pointStyleWidth: 8 } },
+        tooltip: {
+          backgroundColor: 'rgba(61,46,31,0.9)',
+          titleFont: { family: "'Inter','Noto Sans TC',sans-serif", size: 12 },
+          bodyFont: { family: "'Inter','Noto Sans TC',sans-serif", size: 12 },
+          padding: 10, cornerRadius: 8, displayColors: true
+        }
+      }
+    };
+  },
+  renderPie(canvasId, summary) {
+    this.destroy('pie');
+    const ctx = document.getElementById(canvasId);
+    if (!ctx || summary.byJob.length === 0) return;
+    this.charts.pie = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: summary.byJob.map(j => j.jobName),
+        datasets: [{ data: summary.byJob.map(j => Math.round(j.totalPay)), backgroundColor: summary.byJob.map(j => j.color), borderWidth: 3, borderColor: '#fff', hoverBorderWidth: 0, hoverOffset: 6 }]
+      },
+      options: {
+        ...this.commonOpts(), cutout: '65%',
+        plugins: {
+          ...this.commonOpts().plugins,
+          legend: { ...this.commonOpts().plugins.legend, position: 'bottom' },
+          tooltip: { ...this.commonOpts().plugins.tooltip, callbacks: { label: (ctx) => ` ${ctx.label}: ${Utils.formatCurrency(ctx.raw)}` } }
+        }
+      }
+    });
+  },
+  renderDailyBar(canvasId, dailyTotals) {
+    this.destroy('daily');
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    this.charts.daily = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: dailyTotals.map((_, i) => `${i+1}`),
+        datasets: [{ label: '當日薪資', data: dailyTotals,
+          backgroundColor: dailyTotals.map(v => v > 0 ? 'rgba(218,119,86,0.6)' : 'rgba(218,119,86,0.06)'),
+          borderColor: dailyTotals.map(v => v > 0 ? 'rgba(218,119,86,1)' : 'transparent'),
+          borderWidth: 1, borderRadius: 6, borderSkipped: false }]
+      },
+      options: {
+        ...this.commonOpts(),
+        plugins: { ...this.commonOpts().plugins, legend: { display: false }, tooltip: { ...this.commonOpts().plugins.tooltip, callbacks: { label: (ctx) => Utils.formatCurrency(ctx.raw) } } },
+        scales: { x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 0 } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => v >= 1000 ? (v/1000)+'k' : v, font: { size: 10 } } } }
+      }
+    });
+  },
+  renderMonthlyBar(canvasId, monthlyTotals, currentMonth) {
+    this.destroy('monthly');
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    this.charts.monthly = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: monthlyTotals.map(m => `${m.month}月`),
+        datasets: [{ label: '月薪資', data: monthlyTotals.map(m => m.totalPay),
+          backgroundColor: monthlyTotals.map(m => m.month === currentMonth ? 'rgba(218,119,86,0.7)' : 'rgba(218,119,86,0.15)'),
+          borderColor: monthlyTotals.map(m => m.month === currentMonth ? 'rgba(218,119,86,1)' : 'transparent'),
+          borderWidth: 1, borderRadius: 6, borderSkipped: false }]
+      },
+      options: {
+        ...this.commonOpts(),
+        plugins: { ...this.commonOpts().plugins, legend: { display: false }, tooltip: { ...this.commonOpts().plugins.tooltip, callbacks: { label: (ctx) => Utils.formatCurrency(ctx.raw) } } },
+        scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => v >= 1000 ? (v/1000)+'k' : v, font: { size: 10 } } } }
+      }
+    });
+  }
+};
+
+// ===================================================================
+// 6. EXPORT MANAGER
+// ===================================================================
+const ExportManager = {
+  exporters: {},
+  register(format, fn) { this.exporters[format] = fn; },
+  async doExport(format, records, jobs, jobName) {
+    const exporter = this.exporters[format];
+    if (!exporter) { alert('不支援的格式'); return; }
+    const result = await exporter(records, jobs, jobName);
+    if (result) this.download(result.blob, result.filename);
+  },
+  download(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+};
+
+ExportManager.register('json', (records, jobs, jobName) => {
+  const data = { jobs: jobName ? jobs.filter(j=>j.name===jobName) : jobs, records, exportedAt: new Date().toISOString() };
+  const str = '\ufeff' + JSON.stringify(data, null, 2);
+  const suffix = jobName ? `_${jobName}` : '';
+  return { blob: new Blob([str], { type: 'application/json;charset=utf-8' }), filename: `薪資紀錄${suffix}.json` };
+});
+
+ExportManager.register('csv', (records, jobs, jobName) => {
+  const jobMap = {}; jobs.forEach(j => jobMap[j.id] = j);
+  const header = '日期,工作類型,計費方式,時長（分鐘）,休息（分鐘）,堂數,薪資,備註';
+  const rows = records.sort((a,b) => a.date.localeCompare(b.date)).map(r => {
+    const j = jobMap[r.jobId] || {};
+    const esc = s => `"${String(s||'').replace(/"/g,'""')}"`;
+    return [r.date, esc(j.name||'未知'), Utils.billingLabel(j.billingType), r.durationMinutes||'', r.breakMinutes||'', r.sessions||'', Math.round(r.calculatedPay), esc(r.notes)].join(',');
+  });
+  const suffix = jobName ? `_${jobName}` : '';
+  return { blob: new Blob(['\ufeff'+[header,...rows].join('\n')], { type: 'text/csv;charset=utf-8' }), filename: `薪資紀錄${suffix}.csv` };
+});
+
+ExportManager.register('markdown', (records, jobs, jobName) => {
+  const jobMap = {}; jobs.forEach(j => jobMap[j.id] = j);
+  const title = jobName ? `薪資紀錄 — ${jobName}` : '薪資紀錄';
+  let md = `# ${title}\n\n`;
+  md += `> 匯出時間：${new Date().toLocaleString('zh-TW')}\n\n`;
+  md += '| 日期 | 工作類型 | 計費方式 | 時長 | 休息 | 薪資 | 備註 |\n';
+  md += '|------|----------|----------|------|------|------|------|\n';
+  let total = 0;
+  records.sort((a,b)=>a.date.localeCompare(b.date)).forEach(r => {
+    const j = jobMap[r.jobId]||{};
+    const dur = r.durationMinutes ? Utils.formatDuration(r.durationMinutes) : (r.sessions ? `${r.sessions} 堂` : '-');
+    const brk = r.breakMinutes ? Utils.formatDuration(r.breakMinutes) : '-';
+    md += `| ${r.date} | ${j.name||'未知'} | ${Utils.billingLabel(j.billingType)} | ${dur} | ${brk} | ${Utils.formatCurrency(r.calculatedPay)} | ${r.notes||''} |\n`;
+    total += r.calculatedPay;
+  });
+  md += `\n**合計：${Utils.formatCurrency(total)}**\n`;
+  const suffix = jobName ? `_${jobName}` : '';
+  return { blob: new Blob([md], { type: 'text/markdown;charset=utf-8' }), filename: `薪資紀錄${suffix}.md` };
+});
+
+ExportManager.register('xlsx', (records, jobs, jobName) => {
+  const jobMap = {}; jobs.forEach(j => jobMap[j.id] = j);
+  const data = records.sort((a,b)=>a.date.localeCompare(b.date)).map(r => {
+    const j = jobMap[r.jobId]||{};
+    return { '日期': r.date, '工作類型': j.name||'未知', '計費方式': Utils.billingLabel(j.billingType), '開始時間': r.startTime||'', '結束時間': r.endTime||'', '時長（分鐘）': r.durationMinutes||'', '休息（分鐘）': r.breakMinutes||'', '堂數': r.sessions||'', '薪資': Math.round(r.calculatedPay), '備註': r.notes||'' };
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:12},{wch:14},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:6},{wch:10},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws, jobName || '紀錄');
+  const summary = {};
+  records.forEach(r => { const j=jobMap[r.jobId]||{}; const n=j.name||'未知'; if(!summary[n])summary[n]={totalPay:0,count:0}; summary[n].totalPay+=r.calculatedPay; summary[n].count++; });
+  const sumData = Object.entries(summary).map(([n,d])=>({'工作類型':n,'紀錄筆數':d.count,'總薪資':Math.round(d.totalPay)}));
+  sumData.push({'工作類型':'合計','紀錄筆數':records.length,'總薪資':Math.round(records.reduce((s,r)=>s+r.calculatedPay,0))});
+  const ws2 = XLSX.utils.json_to_sheet(sumData);
+  ws2['!cols'] = [{wch:14},{wch:10},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws2, '摘要');
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const suffix = jobName ? `_${jobName}` : '';
+  return { blob: new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), filename: `薪資紀錄${suffix}.xlsx` };
+});
+
+ExportManager.register('docx', async (records, jobs, jobName) => {
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, HeadingLevel } = docx;
+  const jobMap = {}; jobs.forEach(j => jobMap[j.id] = j);
+  const sorted = records.sort((a,b)=>a.date.localeCompare(b.date));
+  const total = records.reduce((s,r)=>s+r.calculatedPay,0);
+  const title = jobName ? `薪資紀錄 — ${jobName}` : '薪資紀錄';
+  const hdr = ['日期','工作類型','計費方式','時長','休息','薪資','備註'].map(text =>
+    new TableCell({ children: [new Paragraph({children:[new TextRun({text,bold:true,size:20,font:'Microsoft JhengHei'})]})], width:{size:1400,type:WidthType.DXA} })
+  );
+  const dataRows = sorted.map(r => {
+    const j = jobMap[r.jobId]||{};
+    const dur = r.durationMinutes ? Utils.formatDuration(r.durationMinutes) : (r.sessions ? `${r.sessions} 堂` : '-');
+    const brk = r.breakMinutes ? Utils.formatDuration(r.breakMinutes) : '-';
+    return new TableRow({ children: [r.date,j.name||'未知',Utils.billingLabel(j.billingType),dur,brk,Utils.formatCurrency(r.calculatedPay),r.notes||''].map(text =>
+      new TableCell({ children:[new Paragraph({children:[new TextRun({text:String(text),size:18,font:'Microsoft JhengHei'})]})], width:{size:1400,type:WidthType.DXA} })
+    )});
+  });
+  const doc = new Document({ sections:[{ children:[
+    new Paragraph({text:title,heading:HeadingLevel.HEADING_1,alignment:AlignmentType.CENTER,spacing:{after:200}}),
+    new Paragraph({children:[new TextRun({text:`匯出時間：${new Date().toLocaleString('zh-TW')}`,size:18,color:'888888'})],spacing:{after:300}}),
+    new Table({rows:[new TableRow({children:hdr}),...dataRows],width:{size:100,type:WidthType.PERCENTAGE}}),
+    new Paragraph({children:[new TextRun({text:`合計：${Utils.formatCurrency(total)}`,bold:true,size:24,font:'Microsoft JhengHei'})],spacing:{before:300},alignment:AlignmentType.RIGHT})
+  ]}]});
+  const blob = await Packer.toBlob(doc);
+  const suffix = jobName ? `_${jobName}` : '';
+  return { blob, filename: `薪資紀錄${suffix}.docx` };
+});
+
+ExportManager.register('pdf', (records, jobs, jobName) => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const jobMap = {}; jobs.forEach(j => jobMap[j.id] = j);
+  const sorted = records.sort((a,b)=>a.date.localeCompare(b.date));
+  const total = records.reduce((s,r)=>s+r.calculatedPay,0);
+  const title = jobName ? `Wage Records — ${jobName}` : 'Wage Records';
+  doc.setFontSize(18); doc.text(title, 14, 18);
+  doc.setFontSize(10); doc.text(`Exported: ${new Date().toLocaleString('zh-TW')}`, 14, 26);
+  const tableData = sorted.map(r => {
+    const j = jobMap[r.jobId]||{};
+    const dur = r.durationMinutes ? `${r.durationMinutes} min` : (r.sessions ? `${r.sessions} sessions` : '-');
+    const brk = r.breakMinutes ? `${r.breakMinutes} min` : '-';
+    return [r.date, j.name||'-', Utils.billingLabel(j.billingType), dur, brk, `$${Math.round(r.calculatedPay)}`, r.notes||''];
+  });
+  doc.autoTable({
+    startY: 32,
+    head: [['Date','Job','Billing','Duration','Break','Pay','Notes']],
+    body: tableData,
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [91, 173, 230] },
+    alternateRowStyles: { fillColor: [243, 248, 252] },
+    didDrawPage: () => { doc.setFontSize(11); doc.text(`Total: NT$ ${Math.round(total).toLocaleString()}`, 14, doc.internal.pageSize.height - 10); }
+  });
+  const suffix = jobName ? `_${jobName}` : '';
+  return { blob: doc.output('blob'), filename: `薪資紀錄${suffix}.pdf` };
+});
+
+// ===================================================================
+// 7. UI CONTROLLER
+// ===================================================================
+const App = {
+  currentTab: 0,
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth() + 1,
+  editingRecordId: null,
+  breakMinutes: 60, // default break duration
+
+  init() {
+    this.bindNav();
+    this.bindMonthNav();
+    this.bindAddForm();
+    this.bindBreak();
+    this.bindSettings();
+    this.bindExport();
+    this.updateMonthLabel();
+    this.renderAddForm();
+    this.setDate();
+  },
+
+  bindNav() {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.switchTab(parseInt(btn.dataset.tab)));
+    });
+  },
+
+  switchTab(idx) {
+    this.currentTab = idx;
+    document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+    document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+    document.getElementById('month-nav').style.visibility = (idx===1||idx===2) ? 'visible' : 'hidden';
+    if (idx===1) this.renderRecordList();
+    if (idx===2) this.renderStats();
+    if (idx===3) this.renderSettings();
+  },
+
+  bindMonthNav() {
+    document.getElementById('month-prev').addEventListener('click', () => {
+      this.currentMonth--; if (this.currentMonth<1){this.currentMonth=12;this.currentYear--;}
+      this.updateMonthLabel();
+      if (this.currentTab===1) this.renderRecordList();
+      if (this.currentTab===2) this.renderStats();
+    });
+    document.getElementById('month-next').addEventListener('click', () => {
+      this.currentMonth++; if (this.currentMonth>12){this.currentMonth=1;this.currentYear++;}
+      this.updateMonthLabel();
+      if (this.currentTab===1) this.renderRecordList();
+      if (this.currentTab===2) this.renderStats();
+    });
+  },
+
+  updateMonthLabel() {
+    document.getElementById('month-label').textContent = Utils.monthStr(this.currentYear, this.currentMonth);
+  },
+
+  setDate() { document.getElementById('add-date').value = Utils.todayStr(); },
+
+  renderAddForm() {
+    const select = document.getElementById('add-job');
+    const jobs = JobManager.getActive();
+    select.innerHTML = jobs.length === 0
+      ? '<option value="">請先至設定新增工作類型</option>'
+      : '<option value="">選擇工作類型</option>' + jobs.map(j =>
+          `<option value="${j.id}">${j.name}（${Utils.billingLabel(j.billingType)} ${Utils.formatCurrency(j.rate)}）</option>`
+        ).join('');
+    this.updateFormFields();
+  },
+
+  updateFormFields() {
+    const jobId = document.getElementById('add-job').value;
+    const job = JobManager.getById(jobId);
+    const timeRow = document.getElementById('time-row');
+    const sessionRow = document.getElementById('session-row');
+    const breakSection = document.getElementById('break-section');
+
+    if (!job) {
+      timeRow.style.display = 'flex';
+      sessionRow.style.display = 'none';
+      breakSection.style.display = 'block';
+      return;
+    }
+
+    if (job.billingType === 'perSession') {
+      timeRow.style.display = 'none';
+      sessionRow.style.display = 'flex';
+      breakSection.style.display = 'none'; // no break for per-session
+      document.getElementById('add-session-duration').value = job.sessionDurationMinutes || 60;
+    } else if (job.billingType === 'daily') {
+      timeRow.style.display = 'none';
+      sessionRow.style.display = 'none';
+      breakSection.style.display = 'none'; // no break for daily
+    } else {
+      timeRow.style.display = 'flex';
+      sessionRow.style.display = 'none';
+      breakSection.style.display = 'block';
+    }
+    this.updatePreview();
+  },
+
+  // -- Break time logic
+  bindBreak() {
+    const toggle = document.getElementById('add-break-toggle');
+    const options = document.getElementById('break-options');
+    const chips = document.querySelectorAll('.break-chip');
+    const customRow = document.getElementById('break-custom-row');
+    const customInput = document.getElementById('add-break-custom');
+
+    toggle.addEventListener('change', () => {
+      options.classList.toggle('open', toggle.checked);
+      this.updatePreview();
+    });
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        const mins = parseInt(chip.dataset.minutes);
+        if (mins === 0) {
+          customRow.style.display = 'flex';
+          this.breakMinutes = parseInt(customInput.value) || 30;
+        } else {
+          customRow.style.display = 'none';
+          this.breakMinutes = mins;
+        }
+        this.updatePreview();
+      });
+    });
+
+    customInput.addEventListener('input', () => {
+      this.breakMinutes = parseInt(customInput.value) || 0;
+      this.updatePreview();
+    });
+  },
+
+  getBreakMinutes() {
+    const toggle = document.getElementById('add-break-toggle');
+    if (!toggle.checked) return 0;
+    return this.breakMinutes;
+  },
+
+  updatePreview() {
+    const jobId = document.getElementById('add-job').value;
+    const job = JobManager.getById(jobId);
+    const amountEl = document.getElementById('preview-amount');
+    const detailEl = document.getElementById('preview-detail');
+    const breakEl = document.getElementById('preview-break');
+
+    if (!job) {
+      amountEl.textContent = 'NT$ 0';
+      detailEl.textContent = '請選擇工作類型並填寫時間';
+      breakEl.textContent = '';
+      return;
+    }
+
+    let pay = 0, detail = '';
+    const breakMins = this.getBreakMinutes();
+
+    if (job.billingType === 'hourly') {
+      const start = Utils.timeToMinutes(document.getElementById('add-start').value);
+      const end = Utils.timeToMinutes(document.getElementById('add-end').value);
+      if (start !== null && end !== null) {
+        let totalDur = end - start;
+        if (totalDur < 0) totalDur += 1440;
+        const workDur = Math.max(0, totalDur - breakMins);
+        pay = job.rate * (workDur / 60);
+        detail = `${Utils.formatDuration(workDur)} x ${Utils.formatCurrency(job.rate)}/時`;
+      } else {
+        detail = '請填寫開始與結束時間';
+      }
+    } else if (job.billingType === 'perSession') {
+      const sessions = parseInt(document.getElementById('add-sessions').value) || 1;
+      pay = job.rate * sessions;
+      detail = `${sessions} 堂 x ${Utils.formatCurrency(job.rate)}/堂`;
+    } else if (job.billingType === 'daily') {
+      pay = job.rate;
+      detail = `日薪 ${Utils.formatCurrency(job.rate)}`;
+    }
+
+    amountEl.textContent = Utils.formatCurrency(pay);
+    detailEl.textContent = detail;
+    breakEl.textContent = (breakMins > 0 && job.billingType === 'hourly') ? `已扣除休息 ${Utils.formatDuration(breakMins)}` : '';
+  },
+
+  bindAddForm() {
+    document.getElementById('add-job').addEventListener('change', () => this.updateFormFields());
+    ['add-start','add-end'].forEach(id => document.getElementById(id).addEventListener('input', () => this.updatePreview()));
+    document.getElementById('add-sessions').addEventListener('input', () => this.updatePreview());
+    document.getElementById('add-submit').addEventListener('click', () => this.submitRecord());
+  },
+
+  submitRecord() {
+    const jobId = document.getElementById('add-job').value;
+    if (!jobId) { this.toast('請選擇工作類型','error'); return; }
+    const date = document.getElementById('add-date').value;
+    if (!date) { this.toast('請選擇日期','error'); return; }
+
+    const job = JobManager.getById(jobId);
+    let durationMinutes = 0, sessions = 1;
+    const breakMins = (job.billingType === 'hourly') ? this.getBreakMinutes() : 0;
+
+    if (job.billingType === 'hourly') {
+      const start = Utils.timeToMinutes(document.getElementById('add-start').value);
+      const end = Utils.timeToMinutes(document.getElementById('add-end').value);
+      if (start===null||end===null) { this.toast('請填寫開始與結束時間','error'); return; }
+      let totalDur = end - start;
+      if (totalDur < 0) totalDur += 1440;
+      durationMinutes = Math.max(0, totalDur - breakMins);
+      if (durationMinutes === 0) { this.toast('扣除休息後工作時長為零','error'); return; }
+    } else if (job.billingType === 'perSession') {
+      sessions = parseInt(document.getElementById('add-sessions').value) || 1;
+      durationMinutes = sessions * (job.sessionDurationMinutes || 60);
+    }
+
+    const data = {
+      jobId, date,
+      startTime: document.getElementById('add-start').value || null,
+      endTime: document.getElementById('add-end').value || null,
+      durationMinutes, breakMinutes: breakMins, sessions,
+      notes: document.getElementById('add-note').value.trim()
+    };
+
+    if (this.editingRecordId) {
+      RecordManager.update(this.editingRecordId, data);
+      this.editingRecordId = null;
+      document.getElementById('add-submit').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> 新增紀錄';
+      this.toast('紀錄已更新');
+    } else {
+      RecordManager.create(data);
+      this.toast('紀錄已新增');
+    }
+
+    // Reset
+    document.getElementById('add-start').value = '';
+    document.getElementById('add-end').value = '';
+    document.getElementById('add-sessions').value = '1';
+    document.getElementById('add-note').value = '';
+    document.getElementById('add-break-toggle').checked = false;
+    document.getElementById('break-options').classList.remove('open');
+    this.updatePreview();
+  },
+
+  // -- Record List
+  renderRecordList() {
+    const records = RecordManager.getByMonth(this.currentYear, this.currentMonth)
+      .sort((a,b) => b.date.localeCompare(a.date) || (b.startTime||'').localeCompare(a.startTime||''));
+    const summary = RecordManager.getMonthlySummary(this.currentYear, this.currentMonth);
+
+    document.getElementById('list-summary').innerHTML = `
+      <div class="summary-card"><div class="summary-value">${Utils.formatCurrency(summary.totalPay)}</div><div class="summary-label">本月薪資</div></div>
+      <div class="summary-card"><div class="summary-value">${Utils.formatDurationShort(summary.totalMinutes)}</div><div class="summary-label">總時數</div></div>
+      <div class="summary-card"><div class="summary-value">${summary.recordCount}</div><div class="summary-label">紀錄筆數</div></div>
+    `;
+
+    const listEl = document.getElementById('record-list');
+    if (records.length === 0) {
+      listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128221;</div><p>本月尚無紀錄<br>點擊下方「新增紀錄」開始記錄</p></div>';
+      return;
+    }
+
+    listEl.innerHTML = records.map(r => {
+      const job = JobManager.getById(r.jobId);
+      const name = job ? job.name : '未知';
+      const color = job ? job.color : '#999';
+      const dur = r.durationMinutes ? Utils.formatDurationShort(r.durationMinutes) : '';
+      const time = r.startTime && r.endTime ? `${r.startTime} - ${r.endTime}` : '';
+      const sessionInfo = (job && job.billingType === 'perSession') ? `${r.sessions||1} 堂` : '';
+      const breakTag = r.breakMinutes ? `<span class="record-break-tag">${Utils.icons.coffee} 休息 ${r.breakMinutes}m</span>` : '';
+      return `
+        <div class="record-card" data-id="${r.id}">
+          <div class="record-color" style="background:${color}"></div>
+          <div class="record-info">
+            <div class="record-title">
+              <span class="record-job">${name}</span>
+              <span class="record-pay">${Utils.formatCurrency(r.calculatedPay)}</span>
+            </div>
+            <div class="record-meta">
+              <span>${Utils.icons.calendar} ${Utils.formatDate(r.date)}</span>
+              ${time ? `<span>${Utils.icons.clock} ${time}</span>` : ''}
+              ${dur ? `<span>${Utils.icons.timer} ${dur}</span>` : ''}
+              ${sessionInfo ? `<span>${Utils.icons.sessions} ${sessionInfo}</span>` : ''}
+              ${breakTag}
+            </div>
+            ${r.notes ? `<div class="record-note">${r.notes}</div>` : ''}
+          </div>
+          <div class="record-actions">
+            <button title="編輯" onclick="App.editRecord('${r.id}')">${Utils.icons.edit}</button>
+            <button title="刪除" onclick="App.deleteRecord('${r.id}')">${Utils.icons.trash}</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  editRecord(id) {
+    const r = RecordManager.getAll().find(x => x.id === id);
+    if (!r) return;
+    this.editingRecordId = id;
+    document.getElementById('add-job').value = r.jobId;
+    this.updateFormFields();
+    document.getElementById('add-date').value = r.date;
+    if (r.startTime) document.getElementById('add-start').value = r.startTime;
+    if (r.endTime) document.getElementById('add-end').value = r.endTime;
+    document.getElementById('add-sessions').value = r.sessions || 1;
+    document.getElementById('add-note').value = r.notes || '';
+
+    // Restore break state
+    if (r.breakMinutes && r.breakMinutes > 0) {
+      document.getElementById('add-break-toggle').checked = true;
+      document.getElementById('break-options').classList.add('open');
+      this.breakMinutes = r.breakMinutes;
+      // Select matching chip or set custom
+      const chips = document.querySelectorAll('.break-chip');
+      let matched = false;
+      chips.forEach(c => {
+        c.classList.remove('selected');
+        if (parseInt(c.dataset.minutes) === r.breakMinutes) { c.classList.add('selected'); matched = true; }
+      });
+      if (!matched) {
+        chips.forEach(c => { if (parseInt(c.dataset.minutes)===0) c.classList.add('selected'); });
+        document.getElementById('break-custom-row').style.display = 'flex';
+        document.getElementById('add-break-custom').value = r.breakMinutes;
+      }
+    } else {
+      document.getElementById('add-break-toggle').checked = false;
+      document.getElementById('break-options').classList.remove('open');
+    }
+
+    document.getElementById('add-submit').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> 更新紀錄';
+    this.updatePreview();
+    this.switchTab(0);
+  },
+
+  deleteRecord(id) {
+    if (!confirm('確定要刪除此筆紀錄？')) return;
+    RecordManager.delete(id);
+    this.toast('紀錄已刪除');
+    this.renderRecordList();
+  },
+
+  renderStats() {
+    const summary = RecordManager.getMonthlySummary(this.currentYear, this.currentMonth);
+    const settings = DataStore.getSettings();
+    const targetEl = document.getElementById('target-section');
+    if (settings.targetMonthlySalary) {
+      const pct = Math.min(100, Math.round((summary.totalPay / settings.targetMonthlySalary) * 100));
+      const cls = pct < 50 ? 'low' : pct < 80 ? 'mid' : '';
+      targetEl.innerHTML = `
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E6B44C"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> 月薪目標</span>
+            <span class="progress-text">${Utils.formatCurrency(summary.totalPay)} / ${Utils.formatCurrency(settings.targetMonthlySalary)}</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+          <span class="progress-pct">${pct}%</span>
+        </div>`;
+    } else {
+      targetEl.innerHTML = '<div class="section-empty-hint">至「設定」頁面設定月薪目標以查看進度</div>';
+    }
+    document.getElementById('stats-summary').innerHTML = `
+      <div class="summary-card"><div class="summary-value">${Utils.formatCurrency(summary.totalPay)}</div><div class="summary-label">本月薪資</div></div>
+      <div class="summary-card"><div class="summary-value">${Utils.formatDurationShort(summary.totalMinutes)}</div><div class="summary-label">總時數</div></div>
+      <div class="summary-card"><div class="summary-value">${summary.recordCount}</div><div class="summary-label">筆數</div></div>
+    `;
+    ChartManager.renderPie('chart-pie', summary);
+    ChartManager.renderDailyBar('chart-daily', RecordManager.getDailyTotals(this.currentYear, this.currentMonth));
+    ChartManager.renderMonthlyBar('chart-monthly', RecordManager.getMonthlyTotals(this.currentYear), this.currentMonth);
+  },
+
+  renderSettings() {
+    this.renderJobList();
+    this.populateExportJobSelect();
+    const settings = DataStore.getSettings();
+    document.getElementById('target-salary').value = settings.targetMonthlySalary || '';
+  },
+
+  renderJobList() {
+    const jobs = JobManager.getAll();
+    const el = document.getElementById('job-list');
+    if (jobs.length === 0) {
+      el.innerHTML = '<div class="empty-state" style="padding:32px;"><div class="empty-icon">&#128188;</div><p>尚未新增工作類型</p></div>';
+      return;
+    }
+    el.innerHTML = jobs.map(j => `
+      <div class="job-item">
+        <div class="job-color-dot" style="background:${j.color}"></div>
+        <div class="job-item-info">
+          <div class="job-item-name">${j.name} <span class="inline-tag ${Utils.billingTag(j.billingType)}">${Utils.billingLabel(j.billingType)}</span></div>
+          <div class="job-item-rate">${Utils.formatCurrency(j.rate)}${j.billingType==='hourly'?'/時':j.billingType==='perSession'?'/堂':'/日'}${j.billingType==='perSession'?` · 每堂 ${j.sessionDurationMinutes} 分鐘`:''}</div>
+        </div>
+        <div class="job-item-actions">
+          <button onclick="App.editJob('${j.id}')">${Utils.icons.edit}</button>
+          <button class="danger-hover" onclick="App.deleteJob('${j.id}')">${Utils.icons.trash}</button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  bindSettings() {
+    document.getElementById('btn-add-job').addEventListener('click', () => this.showJobModal());
+    document.getElementById('btn-save-target').addEventListener('click', () => {
+      const val = parseInt(document.getElementById('target-salary').value);
+      const settings = DataStore.getSettings();
+      settings.targetMonthlySalary = val > 0 ? val : null;
+      DataStore.saveSettings(settings);
+      this.toast('目標已儲存');
+    });
+    document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+    document.getElementById('import-file').addEventListener('change', (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!data.jobs && !data.records) throw new Error('Invalid');
+          DataStore.importAll(data);
+          this.toast('資料匯入成功');
+          this.renderAddForm();
+          e.target.value = '';
+        } catch { this.toast('匯入失敗：格式不正確','error'); }
+      };
+      reader.readAsText(file);
+    });
+    document.getElementById('btn-clear-data').addEventListener('click', () => {
+      if (!confirm('確定要清除所有資料？此操作無法復原！')) return;
+      DataStore.clearAll();
+      this.toast('所有資料已清除');
+      this.renderAddForm();
+      this.renderSettings();
+    });
+  },
+
+  showJobModal(jobId) {
+    const job = jobId ? JobManager.getById(jobId) : null;
+    const modal = document.getElementById('modal-overlay');
+    const content = document.getElementById('modal-content');
+    content.innerHTML = `
+      <div class="modal-header">
+        <h3>${job ? '編輯工作類型' : '新增工作類型'}</h3>
+        <button class="modal-close" onclick="App.closeModal()">&times;</button>
+      </div>
+      <div class="form-group"><label>名稱</label><input type="text" id="job-name" class="form-control" placeholder="例：便利商店打工" value="${job?job.name:''}"></div>
+      <div class="form-group"><label>計費方式</label><select id="job-billing" class="form-control">
+        <option value="hourly" ${job&&job.billingType==='hourly'?'selected':''}>時薪制</option>
+        <option value="perSession" ${job&&job.billingType==='perSession'?'selected':''}>堂數制</option>
+        <option value="daily" ${job&&job.billingType==='daily'?'selected':''}>日薪制</option>
+      </select></div>
+      <div class="form-group"><label id="rate-label">時薪金額</label><input type="number" id="job-rate" class="form-control" placeholder="例：183" min="0" value="${job?job.rate:''}"></div>
+      <div class="form-group" id="session-dur-group" style="display:none;"><label>每堂時長（分鐘）</label><input type="number" id="job-session-dur" class="form-control" placeholder="例：120" min="1" value="${job&&job.sessionDurationMinutes?job.sessionDurationMinutes:60}"></div>
+      <div class="form-group"><label>顏色</label><input type="color" id="job-color" class="form-control" style="height:48px;padding:6px;cursor:pointer;" value="${job?job.color:Utils.nextColor(JobManager.getAll().map(j=>j.color))}"></div>
+      <button class="btn btn-primary" id="job-modal-save">${job?'儲存變更':'新增工作'}</button>
+    `;
+    const updateRateLabel = () => {
+      const bt = document.getElementById('job-billing').value;
+      document.getElementById('rate-label').textContent = bt==='hourly'?'時薪金額':bt==='perSession'?'每堂金額':'日薪金額';
+      document.getElementById('session-dur-group').style.display = bt==='perSession'?'block':'none';
+    };
+    updateRateLabel();
+    document.getElementById('job-billing').addEventListener('change', updateRateLabel);
+    document.getElementById('job-modal-save').addEventListener('click', () => {
+      const name = document.getElementById('job-name').value.trim();
+      const billingType = document.getElementById('job-billing').value;
+      const rate = parseFloat(document.getElementById('job-rate').value);
+      const color = document.getElementById('job-color').value;
+      const sessionDurationMinutes = parseInt(document.getElementById('job-session-dur').value)||60;
+      if (!name) { this.toast('請輸入名稱','error'); return; }
+      if (!rate||rate<=0) { this.toast('請輸入有效金額','error'); return; }
+      if (job) { JobManager.update(jobId,{name,billingType,rate,color,sessionDurationMinutes}); this.toast('工作類型已更新'); }
+      else { JobManager.create({name,billingType,rate,color,sessionDurationMinutes}); this.toast('工作類型已新增'); }
+      this.closeModal(); this.renderJobList(); this.renderAddForm();
+    });
+    modal.classList.add('show');
+  },
+
+  closeModal() { document.getElementById('modal-overlay').classList.remove('show'); },
+  editJob(id) { this.showJobModal(id); },
+  deleteJob(id) {
+    const records = RecordManager.getAll().filter(r => r.jobId===id);
+    const msg = records.length > 0
+      ? `此工作類型有 ${records.length} 筆紀錄，刪除後紀錄仍會保留但會顯示為「未知」。確定刪除？`
+      : '確定要刪除此工作類型？';
+    if (!confirm(msg)) return;
+    JobManager.delete(id); this.toast('工作類型已刪除'); this.renderJobList(); this.renderAddForm();
+  },
+
+  populateExportJobSelect() {
+    const sel = document.getElementById('export-job');
+    const jobs = JobManager.getAll();
+    sel.innerHTML = '<option value="all">全部工作</option>' + jobs.map(j => `<option value="${j.id}">${j.name}</option>`).join('');
+  },
+
+  bindExport() {
+    const jobSel = document.getElementById('export-job');
+    const modeGroup = document.getElementById('export-mode-group');
+    jobSel.addEventListener('change', () => {
+      modeGroup.style.display = jobSel.value === 'all' ? '' : 'none';
+    });
+    // Show mode group when "all" is selected
+    modeGroup.style.display = '';
+
+    document.querySelectorAll('.export-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const format = btn.dataset.format;
+        const range = document.getElementById('export-range').value;
+        const jobFilter = document.getElementById('export-job').value;
+        const exportMode = document.querySelector('input[name="export-mode"]:checked').value;
+        let allRecords = range==='current' ? RecordManager.getByMonth(this.currentYear,this.currentMonth) : RecordManager.getAll();
+        const jobs = JobManager.getAll();
+
+        if (allRecords.length===0) { this.toast('沒有可匯出的紀錄','error'); return; }
+
+        // Single job selected
+        if (jobFilter !== 'all') {
+          const filtered = allRecords.filter(r => r.jobId === jobFilter);
+          if (filtered.length===0) { this.toast('該工作沒有紀錄','error'); return; }
+          const job = jobs.find(j => j.id === jobFilter);
+          const jobName = job ? job.name : '未知';
+          try {
+            await ExportManager.doExport(format, filtered, jobs, jobName);
+            this.toast(`${format.toUpperCase()} 匯出成功（${jobName}）`);
+          } catch(err) { console.error(err); this.toast('匯出失敗：'+err.message,'error'); }
+          return;
+        }
+
+        // All jobs, per-job mode: export one file per job
+        if (exportMode === 'perJob') {
+          const jobMap = {};
+          allRecords.forEach(r => { if (!jobMap[r.jobId]) jobMap[r.jobId] = []; jobMap[r.jobId].push(r); });
+          let count = 0;
+          for (const [jobId, recs] of Object.entries(jobMap)) {
+            const job = jobs.find(j => j.id === jobId);
+            const jobName = job ? job.name : '未知';
+            try {
+              await ExportManager.doExport(format, recs, jobs, jobName);
+              count++;
+            } catch(err) { console.error(err); }
+            // Small delay between downloads so browser doesn't block them
+            await new Promise(res => setTimeout(res, 400));
+          }
+          this.toast(`已匯出 ${count} 份 ${format.toUpperCase()} 檔案`);
+          return;
+        }
+
+        // All jobs, single file
+        try {
+          await ExportManager.doExport(format, allRecords, jobs);
+          this.toast(`${format.toUpperCase()} 匯出成功`);
+        } catch(err) { console.error(err); this.toast('匯出失敗：'+err.message,'error'); }
+      });
+    });
+  },
+
+  toast(msg, type='success') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 2900);
+  }
+};
+
+document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target===e.currentTarget) App.closeModal(); });
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>

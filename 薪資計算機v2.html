@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="薪資計算機">
+<meta name="theme-color" content="#111111">
+<title>薪資計算機 v2.0</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans TC',-apple-system,'Helvetica Neue',sans-serif;max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);transition:background .3s,color .3s}
+body.dark{background:#111;color:#e0e0e0}
+body.light{background:#f5f5f5;color:#1a1a1a}
+.header{padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:18px;font-weight:800}
+.month-nav{display:flex;align-items:center;gap:6px}
+.month-nav button{background:none;border:none;font-size:13px;cursor:pointer;padding:4px}
+.month-label{font-size:12px;font-weight:600;min-width:80px;text-align:center}
+.nav{display:flex;justify-content:space-around;padding:2px 8px 6px}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:none;cursor:pointer;padding:5px 6px;border-radius:8px;transition:all .2s;font-family:inherit;font-size:10px}
+.nav-item .icon{font-size:16px}
+.content{flex:1;padding:10px 14px 20px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.card{border-radius:12px;padding:14px}
+.row3{display:flex;gap:6px}
+.sc{flex:1;border-radius:10px;padding:10px 8px}
+.sl{font-size:10px;margin-bottom:3px}
+.sv{font-size:15px;font-weight:800}
+.label{display:block;font-size:11px;margin:12px 0 5px;font-weight:600}
+.inp{width:100%;border-radius:9px;padding:9px 11px;font-size:13px;outline:none;box-sizing:border-box;font-family:inherit;border-width:1px;border-style:solid}
+.amt-row{display:flex;align-items:center;border-radius:9px;padding:0 11px;border-width:1px;border-style:solid}
+.amt-row .dollar{font-size:18px;font-weight:700;margin-right:4px}
+.amt-row input{flex:1;background:transparent;border:none;font-size:26px;font-weight:800;padding:6px 0;outline:none;font-family:inherit}
+.tog-row{display:flex;gap:6px}
+.tog-btn{flex:1;padding:9px 0;border-radius:9px;border:1px solid;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.add-btn{width:100%;margin-top:16px;padding:12px 0;border-radius:10px;border:none;background:linear-gradient(135deg,#339af0,#20c997);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.tx-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.tx-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.del-btn{background:none;border:none;font-size:13px;cursor:pointer;padding:3px 5px;border-radius:6px}
+.p-bg{height:7px;border-radius:4px;overflow:hidden}
+.p-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.e-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.e-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.e-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 6px;border-radius:10px;border:1px solid;cursor:pointer;font-family:inherit;transition:all .2s}
+.pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.sync-tag{display:inline-block;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:600;background:#339af022;color:#339af0;margin-left:4px}
+.daily-bars{display:flex;align-items:flex-end;gap:2px;height:55px;padding:0 2px}
+.daily-bar{flex:1;min-width:0;border-radius:2px;transition:height .3s}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);color:#fff;padding:7px 18px;border-radius:18px;font-size:13px;z-index:999;font-weight:600;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.color-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.color-btn{width:28px;height:28px;border-radius:50%;cursor:pointer}
+.acc-pills{display:flex;gap:6px;flex-wrap:wrap}
+.acc-pill{padding:7px 14px;border-radius:9px;font-size:12px;border:1px solid;cursor:pointer;font-family:inherit;font-weight:600}
+.sub-back{background:none;border:none;font-size:12px;cursor:pointer;margin-bottom:10px;font-family:inherit;color:#339af0}
+.setting-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 0;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left;font-size:13px}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:9px;font-size:12px;border:1px solid;cursor:pointer;font-family:inherit;font-weight:600}
+select.inp{-webkit-appearance:none;appearance:none}
+</style>
+</head>
+<body class="dark">
+<div class="toast" id="toast"></div>
+<div class="header">
+  <div class="logo">💼 薪資計算機</div>
+  <div class="month-nav">
+    <button onclick="chMonth(-1)">◀</button>
+    <span class="month-label" id="mLabel"></span>
+    <button onclick="chMonth(1)">▶</button>
+  </div>
+</div>
+<div class="nav" id="nav"></div>
+<div class="content" id="content"></div>
+
+<script>
+const MN=["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
+const COLORS=["#E8590C","#5C7CFA","#F06595","#845EF7","#20C997","#FF6B6B","#339AF0","#868E96","#F59F00","#37B24D","#E64980","#4DABF7"];
+
+function gId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function gMK(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
+function fN(n){return n.toLocaleString("zh-TW")}
+function fD(iso){const d=new Date(iso);return `${d.getMonth()+1}/${d.getDate()}`}
+function billingLabel(t){return t==="hourly"?"時薪":t==="perSession"?"堂薪":"日薪"}
+function formatDuration(m){const h=Math.floor(m/60),r=m%60;return h>0?(r>0?`${h}h${r}m`:`${h}h`):`${r}m`}
+function toast(m){const e=document.getElementById("toast");e.textContent=m;e.style.background=T().toast;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2000)}
+
+const S={
+  jobs:JSON.parse(localStorage.getItem("wc2-jobs")||"[]"),
+  records:JSON.parse(localStorage.getItem("wc2-records")||"[]"),
+  settings:JSON.parse(localStorage.getItem("wc2-settings")||'{"targetMonthlySalary":0,"syncMode":"manual"}'),
+  dark:JSON.parse(localStorage.getItem("mm2-dark")??"true"),
+  view:"dashboard",
+  month:gMK(new Date()),
+  search:"",
+  sTab:"main",
+  af:{jobId:"",date:new Date().toISOString().slice(0,10),startTime:"09:00",endTime:"18:00",breakMinutes:60,sessions:1,notes:""},
+  newJob:{name:"",billingType:"hourly",rate:"",color:"#339AF0",sessionDurationMinutes:""},
+  editJobId:null
+};
+
+function save(){
+  localStorage.setItem("wc2-jobs",JSON.stringify(S.jobs));
+  localStorage.setItem("wc2-records",JSON.stringify(S.records));
+  localStorage.setItem("wc2-settings",JSON.stringify(S.settings));
+  localStorage.setItem("mm2-dark",JSON.stringify(S.dark));
+}
+function T(){
+  const d=S.dark;
+  return{bg:d?"#111":"#f5f5f5",card:d?"#1a1a1a":"#fff",border:d?"#2a2a2a":"#e0e0e0",input:d?"#222":"#f0f0f0",
+    ib:d?"#333":"#d0d0d0",text:d?"#e0e0e0":"#1a1a1a",dim:d?"#888":"#666",dimmer:d?"#555":"#aaa",
+    w:d?"#fff":"#1a1a1a",toast:d?"#2d2d2d":"#333",niA:d?"#1e1e1e":"#e8e8e8"};
+}
+function applyTheme(){document.body.className=S.dark?"dark":"light";document.querySelector('meta[name=theme-color]').content=S.dark?"#111111":"#f5f5f5"}
+function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));render()}
+function setView(v){S.view=v;if(v==="settings")S.sTab="main";render()}
+
+function calcPay(job,rec){
+  if(!job)return 0;
+  if(job.billingType==="hourly"){
+    const dur=rec.durationMinutes||0,brk=rec.breakMinutes||0;
+    return Math.round(Math.max(0,(dur-brk)/60)*job.rate);
+  }
+  if(job.billingType==="perSession")return Math.round((rec.sessions||0)*job.rate);
+  return Math.round(job.rate);
+}
+function timeDiff(s,e){
+  const[sh,sm]=s.split(":").map(Number),[eh,em]=e.split(":").map(Number);
+  let d=(eh*60+em)-(sh*60+sm);if(d<0)d+=1440;return d;
+}
+
+// ═══ ExportManager ═══
+const ExportManager={
+  exporters:{},
+  register(format,fn){this.exporters[format]=fn},
+  async doExport(format,data){
+    const exporter=this.exporters[format];
+    if(!exporter){toast("不支援的格式");return}
+    const result=await exporter(data);
+    if(result)this.download(result.blob,result.filename);
+  },
+  download(blob,filename){
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+};
+
+function getExportData(){
+  const range=document.getElementById("exp-range")?.value||"all";
+  const jobFilter=document.getElementById("exp-job")?.value||"all";
+  let recs=S.records.slice();
+  if(range==="current")recs=recs.filter(x=>gMK(new Date(x.date))===S.month);
+  if(jobFilter!=="all")recs=recs.filter(x=>x.jobId===jobFilter);
+  return{records:recs.sort((a,b)=>a.date.localeCompare(b.date)),jobs:S.jobs,settings:S.settings};
+}
+function recRow(r){
+  const j=S.jobs.find(x=>x.id===r.jobId);
+  return{date:r.date,jobName:j?.name||"未知",billingType:j?billingLabel(j.billingType):"",startTime:r.startTime||"",endTime:r.endTime||"",duration:r.durationMinutes||"",breakMin:r.breakMinutes||"",sessions:r.sessions||"",pay:r.calculatedPay,notes:r.notes||""};
+}
+
+ExportManager.register("json",(data)=>{
+  const str="\ufeff"+JSON.stringify({...data,exportDate:new Date().toISOString()},null,2);
+  return{blob:new Blob([str],{type:"application/json;charset=utf-8"}),filename:`薪資計算機_${new Date().toISOString().slice(0,10)}.json`};
+});
+ExportManager.register("csv",(data)=>{
+  const h="日期,工作類型,計費方式,開始時間,結束時間,時長（分鐘）,休息（分鐘）,堂數,薪資,備註";
+  const rows=data.records.map(r=>{const x=recRow(r);return`${x.date},${x.jobName},${x.billingType},${x.startTime},${x.endTime},${x.duration},${x.breakMin},${x.sessions},${x.pay},"${x.notes.replace(/"/g,'""')}"`});
+  return{blob:new Blob(["\uFEFF"+[h,...rows].join("\n")],{type:"text/csv;charset=utf-8"}),filename:`薪資計算機_${new Date().toISOString().slice(0,10)}.csv`};
+});
+ExportManager.register("markdown",(data)=>{
+  const total=data.records.reduce((s,r)=>s+r.calculatedPay,0);
+  let md="# 薪資計算機紀錄\n\n";
+  md+=`> 匯出時間：${new Date().toLocaleString("zh-TW")}\n\n`;
+  md+="| 日期 | 工作 | 計費 | 時長/堂數 | 薪資 | 備註 |\n|------|------|------|-----------|------|------|\n";
+  data.records.forEach(r=>{const x=recRow(r);md+=`| ${x.date} | ${x.jobName} | ${x.billingType} | ${x.duration?formatDuration(x.duration):x.sessions+'堂'} | $${fN(x.pay)} | ${x.notes} |\n`});
+  md+=`\n**總薪資：$${fN(total)}**\n`;
+  return{blob:new Blob([md],{type:"text/markdown;charset=utf-8"}),filename:`薪資計算機_${new Date().toISOString().slice(0,10)}.md`};
+});
+ExportManager.register("xlsx",(data)=>{
+  const rows=data.records.map(r=>{const x=recRow(r);return{"日期":x.date,"工作類型":x.jobName,"計費方式":x.billingType,"開始時間":x.startTime,"結束時間":x.endTime,"時長（分鐘）":x.duration,"休息（分鐘）":x.breakMin,"堂數":x.sessions,"薪資":x.pay,"備註":x.notes}});
+  const wb=XLSX.utils.book_new();const ws=XLSX.utils.json_to_sheet(rows);
+  ws["!cols"]=[{wch:12},{wch:10},{wch:8},{wch:8},{wch:8},{wch:10},{wch:10},{wch:6},{wch:10},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,"薪資紀錄");
+  const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  return{blob:new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),filename:`薪資計算機_${new Date().toISOString().slice(0,10)}.xlsx`};
+});
+ExportManager.register("docx",async(data)=>{
+  const{Document,Packer,Paragraph,Table,TableRow,TableCell,TextRun,WidthType,AlignmentType,HeadingLevel}=docx;
+  const total=data.records.reduce((s,r)=>s+r.calculatedPay,0);
+  const hdr=["日期","工作","計費","時長","薪資","備註"].map(text=>new TableCell({children:[new Paragraph({children:[new TextRun({text,bold:true,size:20,font:"Microsoft JhengHei"})]})],width:{size:1500,type:WidthType.DXA}}));
+  const dataRows=data.records.map(r=>{const x=recRow(r);return new TableRow({children:[x.date,x.jobName,x.billingType,x.duration?formatDuration(x.duration):(x.sessions+'堂'),"$"+fN(x.pay),x.notes].map(text=>new TableCell({children:[new Paragraph({children:[new TextRun({text:String(text),size:18,font:"Microsoft JhengHei"})]})],width:{size:1500,type:WidthType.DXA}}))})});
+  const doc=new Document({sections:[{children:[
+    new Paragraph({text:"薪資計算機紀錄",heading:HeadingLevel.HEADING_1,alignment:AlignmentType.CENTER,spacing:{after:200}}),
+    new Paragraph({children:[new TextRun({text:`匯出時間：${new Date().toLocaleString("zh-TW")}`,size:18,color:"888888"})],spacing:{after:300}}),
+    new Table({rows:[new TableRow({children:hdr}),...dataRows],width:{size:100,type:WidthType.PERCENTAGE}}),
+    new Paragraph({children:[new TextRun({text:`總薪資：$${fN(total)}`,bold:true,size:22,font:"Microsoft JhengHei"})],spacing:{before:300},alignment:AlignmentType.RIGHT})
+  ]}]});
+  const blob=await Packer.toBlob(doc);
+  return{blob,filename:`薪資計算機_${new Date().toISOString().slice(0,10)}.docx`};
+});
+ExportManager.register("pdf",(data)=>{
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:"landscape"});
+  const total=data.records.reduce((s,r)=>s+r.calculatedPay,0);
+  doc.setFontSize(18);doc.text("Wage Tracker Records",14,18);
+  doc.setFontSize(10);doc.text(`Exported: ${new Date().toLocaleString("zh-TW")}`,14,26);
+  const tableData=data.records.map(r=>{const x=recRow(r);return[x.date,x.jobName,x.billingType,x.startTime,x.endTime,x.duration||"",x.breakMin||"",x.sessions||"","$"+fN(x.pay),x.notes]});
+  doc.autoTable({startY:32,head:[["Date","Job","Type","Start","End","Dur(min)","Break","Sessions","Pay","Note"]],body:tableData,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[51,154,240]},alternateRowStyles:{fillColor:[240,245,255]},
+    didDrawPage:()=>{doc.setFontSize(11);doc.text(`Total: $${fN(total)}`,14,doc.internal.pageSize.height-10)}});
+  return{blob:doc.output("blob"),filename:`薪資計算機_${new Date().toISOString().slice(0,10)}.pdf`};
+});
+
+// ═══ Charts ═══
+function donut(data,t){
+  const total=data.reduce((s,d)=>s+d.value,0);
+  if(total===0)return `<svg width="170" height="170" viewBox="0 0 180 180"><circle cx="90" cy="90" r="70" fill="none" stroke="${t.border}" stroke-width="20"/><text x="90" y="90" text-anchor="middle" dominant-baseline="central" fill="${t.dim}" font-size="13">無資料</text></svg>`;
+  let cum=0,paths="";
+  data.filter(d=>d.value>0).forEach(d=>{
+    const f=d.value/total,s=cum;cum+=f;
+    const sa=s*2*Math.PI-Math.PI/2,ea=(s+f)*2*Math.PI-Math.PI/2,r=70,cx=90,cy=90;
+    if(f>=.9999)paths+=`<path d="M ${cx-r} ${cy} A ${r} ${r} 0 1 1 ${cx+r} ${cy} A ${r} ${r} 0 1 1 ${cx-r} ${cy}" fill="none" stroke="${d.color}" stroke-width="20"/>`;
+    else paths+=`<path d="M ${cx+r*Math.cos(sa)} ${cy+r*Math.sin(sa)} A ${r} ${r} 0 ${f>.5?1:0} 1 ${cx+r*Math.cos(ea)} ${cy+r*Math.sin(ea)}" fill="none" stroke="${d.color}" stroke-width="20"/>`;
+  });
+  return `<svg width="170" height="170" viewBox="0 0 180 180">${paths}<text x="90" y="80" text-anchor="middle" dominant-baseline="central" fill="${t.dimmer}" font-size="11">總收入</text><text x="90" y="100" text-anchor="middle" dominant-baseline="central" fill="${t.w}" font-size="17" font-weight="700">$${fN(total)}</text></svg>`;
+}
+function bars(mk,t){
+  const days={};
+  S.records.filter(x=>gMK(new Date(x.date))===mk).forEach(x=>{const d=new Date(x.date).getDate();days[d]=(days[d]||0)+x.calculatedPay});
+  const[y,m]=mk.split("-").map(Number),dim=new Date(y,m,0).getDate(),max=Math.max(...Object.values(days),1);
+  let h="";for(let i=1;i<=dim;i++){const v=days[i]||0;const ht=v>0?Math.max(4,(v/max)*48):2;
+    h+=`<div style="flex:1;min-width:0"><div class="daily-bar" style="height:${ht}px;background:${v>0?'linear-gradient(180deg,#51cf66,#339af0)':t.border}"></div></div>`}
+  return `<div class="daily-bars">${h}</div><div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9px;color:${t.dimmer}"><span>1日</span><span>${dim}日</span></div>`;
+}
+
+// ═══ Sync ═══
+function syncRecord(rec){
+  const j=S.jobs.find(x=>x.id===rec.jobId);if(!j)return;
+  const mmTx=JSON.parse(localStorage.getItem("mm2-tx")||"[]");
+  mmTx.unshift({id:gId(),type:"income",amount:rec.calculatedPay,category:"income",account:"bank",note:"[薪資] "+j.name+(rec.notes?" · "+rec.notes:""),date:rec.date});
+  localStorage.setItem("mm2-tx",JSON.stringify(mmTx));
+  rec.syncedToMM=true;save();
+}
+function syncAllUnsynced(){
+  const unsynced=S.records.filter(r=>!r.syncedToMM);
+  if(!unsynced.length){toast("沒有需要同步的紀錄");return}
+  unsynced.forEach(r=>syncRecord(r));
+  toast(`已同步 ${unsynced.length} 筆紀錄`);render();
+}
+
+// ═══ Render ═══
+function render(){
+  applyTheme();
+  const t=T(),[cy,cm]=S.month.split("-").map(Number);
+  document.getElementById("mLabel").textContent=`${cy}年 ${MN[cm-1]}`;
+  document.getElementById("mLabel").style.color=t.dim;
+  document.querySelectorAll(".month-nav button").forEach(b=>b.style.color=t.dim);
+  document.querySelector(".nav").style.borderBottom=`1px solid ${t.border}`;
+
+  const NAVS=[{id:"dashboard",icon:"📊",label:"總覽"},{id:"add",icon:"✏️",label:"記帳"},{id:"history",icon:"📋",label:"明細"},{id:"jobs",icon:"💼",label:"工作"},{id:"settings",icon:"⚙️",label:"設定"}];
+  document.getElementById("nav").innerHTML=NAVS.map(n=>`<button class="nav-item" style="color:${S.view===n.id?t.text:t.dimmer};background:${S.view===n.id?t.niA:'none'}" onclick="setView('${n.id}')"><span class="icon">${n.icon}</span>${n.label}</button>`).join("");
+
+  const mRecs=S.records.filter(x=>gMK(new Date(x.date))===S.month);
+  const totalIncome=mRecs.reduce((s,r)=>s+r.calculatedPay,0);
+  const workDays=new Set(mRecs.map(r=>r.date)).size;
+  const avgDaily=workDays>0?Math.round(totalIncome/workDays):0;
+  const jobIncomeMap={};
+  mRecs.forEach(r=>{jobIncomeMap[r.jobId]=(jobIncomeMap[r.jobId]||0)+r.calculatedPay});
+
+  let html="";
+
+  // ═══ DASHBOARD ═══
+  if(S.view==="dashboard"){
+    html+=`<div class="row3">
+      <div class="sc" style="background:${t.card};border-left:3px solid #51cf66"><div class="sl" style="color:${t.dim}">總收入</div><div class="sv" style="color:#51cf66">$${fN(totalIncome)}</div></div>
+      <div class="sc" style="background:${t.card};border-left:3px solid #339af0"><div class="sl" style="color:${t.dim}">工作天數</div><div class="sv" style="color:#339af0">${workDays}</div></div>
+      <div class="sc" style="background:${t.card};border-left:3px solid #845ef7"><div class="sl" style="color:${t.dim}">平均日薪</div><div class="sv" style="color:#845ef7">$${fN(avgDaily)}</div></div>
+    </div>`;
+
+    if(S.settings.targetMonthlySalary>0){
+      const tgt=S.settings.targetMonthlySalary,pct=Math.min((totalIncome/tgt)*100,100),over=totalIncome>=tgt;
+      const bg=over?"linear-gradient(90deg,#51cf66,#20c997)":pct>60?"linear-gradient(90deg,#339af0,#5c7cfa)":"linear-gradient(90deg,#fab005,#e8590c)";
+      html+=`<div class="card" style="background:${t.card}"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:${t.dim};font-size:12px">目標進度</span><span style="color:${over?'#51cf66':t.dim};font-size:12px;font-weight:600">${over?'已達標！':'還差 $'+fN(tgt-totalIncome)}</span></div><div class="p-bg" style="background:${t.border}"><div class="p-fill" style="width:${pct}%;background:${bg}"></div></div><div style="color:${t.dimmer};font-size:10px;margin-top:3px">$${fN(totalIncome)} / $${fN(tgt)}</div></div>`;
+    }
+
+    const donutData=S.jobs.map(j=>({value:jobIncomeMap[j.id]||0,color:j.color,label:j.name}));
+    const catList=donutData.filter(d=>d.value>0).sort((a,b)=>b.value-a.value).map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><div style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${d.color}"></span><span style="font-size:12px">${d.label}</span></div><span style="font-size:12px;font-weight:600">$${fN(d.value)}</span></div>`).join("");
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:13px;color:${t.dim};margin-bottom:10px;font-weight:600">收入分佈</div><div style="display:flex;justify-content:center;margin-bottom:12px">${donut(donutData,t)}</div>${catList||`<div style="color:${t.dimmer};font-size:12px;text-align:center;padding:10px">本月尚無紀錄</div>`}</div>`;
+
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:13px;color:${t.dim};margin-bottom:10px;font-weight:600">每日收入</div>${bars(S.month,t)}</div>`;
+
+    // Per-job summary
+    const jobSumList=S.jobs.filter(j=>jobIncomeMap[j.id]>0).map(j=>{
+      const jRecs=mRecs.filter(r=>r.jobId===j.id);
+      const totalH=jRecs.reduce((s,r)=>s+(r.durationMinutes||0),0);
+      const info=j.billingType==="hourly"?formatDuration(totalH):j.billingType==="perSession"?jRecs.reduce((s,r)=>s+(r.sessions||0),0)+"堂":jRecs.length+"天";
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid ${t.border}"><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${j.color}22;color:${j.color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${j.name.charAt(0)}</div><div><div style="font-size:12px;font-weight:600">${j.name}</div><div style="font-size:10px;color:${t.dimmer}">${billingLabel(j.billingType)} · ${info}</div></div></div><span style="font-size:13px;font-weight:700;color:#51cf66">$${fN(jobIncomeMap[j.id])}</span></div>`;
+    }).join("");
+    if(jobSumList)html+=`<div class="card" style="background:${t.card}"><div style="font-size:13px;color:${t.dim};margin-bottom:10px;font-weight:600">工作摘要</div>${jobSumList}</div>`;
+  }
+
+  // ═══ ADD ═══
+  else if(S.view==="add"){
+    const f=S.af;
+    const activeJobs=S.jobs.filter(j=>j.active!==false);
+    if(!activeJobs.length){
+      html+=`<div class="card" style="background:${t.card};text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">💼</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">尚未建立工作</div><div style="font-size:12px;color:${t.dim};margin-bottom:14px">請先至「工作」頁面新增工作類型</div><button class="add-btn" style="width:auto;padding:10px 24px;margin:0 auto;display:block" onclick="setView('jobs')">前往新增</button></div>`;
+    } else {
+      if(!f.jobId||!activeJobs.find(j=>j.id===f.jobId))f.jobId=activeJobs[0].id;
+      const selJob=S.jobs.find(j=>j.id===f.jobId);
+      const jobBtns=activeJobs.map(j=>`<button class="acc-pill" style="background:${f.jobId===j.id?(j.color+'33'):'transparent'};color:${f.jobId===j.id?j.color:t.dim};border-color:${f.jobId===j.id?j.color:t.ib}" onclick="S.af.jobId='${j.id}';render()">${j.name}</button>`).join("");
+
+      let payPreview=0;
+      if(selJob){
+        if(selJob.billingType==="hourly"){
+          const dur=timeDiff(f.startTime,f.endTime);
+          payPreview=Math.round(Math.max(0,(dur-(f.breakMinutes||0))/60)*selJob.rate);
+        }else if(selJob.billingType==="perSession"){
+          payPreview=Math.round((f.sessions||0)*selJob.rate);
+        }else{payPreview=Math.round(selJob.rate)}
+      }
+
+      html+=`<div class="card" style="background:${t.card}">
+        <div style="font-size:15px;font-weight:700;margin-bottom:14px">新增紀錄</div>
+        <label class="label" style="color:${t.dim}">選擇工作</label>
+        <div class="acc-pills">${jobBtns}</div>
+        <label class="label" style="color:${t.dim}">日期</label>
+        <input type="date" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${f.date}" oninput="S.af.date=this.value">`;
+
+      if(selJob&&selJob.billingType==="hourly"){
+        const breakOpts=[0,30,60,90].map(v=>`<button class="chip" style="background:${f.breakMinutes===v?(selJob.color+'33'):t.input};border-color:${f.breakMinutes===v?selJob.color:t.ib};color:${f.breakMinutes===v?selJob.color:t.dim}" onclick="S.af.breakMinutes=${v};render()">${v===0?'無休息':v+'分鐘'}</button>`).join("");
+        html+=`<label class="label" style="color:${t.dim}">開始時間</label>
+          <input type="time" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${f.startTime}" oninput="S.af.startTime=this.value;render()">
+          <label class="label" style="color:${t.dim}">結束時間</label>
+          <input type="time" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${f.endTime}" oninput="S.af.endTime=this.value;render()">
+          <label class="label" style="color:${t.dim}">休息時間</label>
+          <div class="chip-row">${breakOpts}<button class="chip" style="background:${![0,30,60,90].includes(f.breakMinutes)?(selJob.color+'33'):t.input};border-color:${![0,30,60,90].includes(f.breakMinutes)?selJob.color:t.ib};color:${![0,30,60,90].includes(f.breakMinutes)?selJob.color:t.dim}" onclick="const v=prompt('自訂休息時間（分鐘）');if(v&&Number(v)>=0){S.af.breakMinutes=Number(v);render()}">自訂</button></div>
+          <div style="margin-top:10px;font-size:11px;color:${t.dim}">工作時長：${formatDuration(Math.max(0,timeDiff(f.startTime,f.endTime)-(f.breakMinutes||0)))}</div>`;
+      }else if(selJob&&selJob.billingType==="perSession"){
+        html+=`<label class="label" style="color:${t.dim}">堂數</label>
+          <input type="number" inputmode="numeric" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${f.sessions}" min="1" oninput="S.af.sessions=Math.max(1,Number(this.value)||1);render()">`;
+      }
+
+      html+=`<div style="margin-top:14px;text-align:center;padding:10px;border-radius:9px;background:${t.input}"><div style="font-size:10px;color:${t.dim};margin-bottom:2px">預計薪資</div><div style="font-size:28px;font-weight:800;color:#51cf66">$${fN(payPreview)}</div></div>
+        <label class="label" style="color:${t.dim}">備註（選填）</label>
+        <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" placeholder="例：加班" value="${f.notes||''}" oninput="S.af.notes=this.value">
+        <button class="add-btn" onclick="addRecord()">✅ 新增</button>
+      </div>`;
+    }
+  }
+
+  // ═══ HISTORY ═══
+  else if(S.view==="history"){
+    const q=S.search.toLowerCase();
+    const filtered=mRecs.filter(x=>{if(!q)return true;const j=S.jobs.find(j=>j.id===x.jobId);return(x.notes||"").toLowerCase().includes(q)||(j?.name||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    let rows=filtered.map(x=>{
+      const j=S.jobs.find(j=>j.id===x.jobId);
+      const jName=j?.name||"未知";const jColor=j?.color||"#868E96";
+      const info=j?.billingType==="hourly"?formatDuration(x.durationMinutes-(x.breakMinutes||0)):j?.billingType==="perSession"?x.sessions+"堂":"日薪";
+      const syncTag=x.syncedToMM?`<span class="sync-tag">已同步</span>`:"";
+      return `<div class="tx-row" style="border-bottom:1px solid ${t.border}"><div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0"><div style="width:34px;height:34px;border-radius:50%;background:${jColor}22;color:${jColor};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${jName.charAt(0)}</div><div style="min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${jName}${syncTag}${x.notes?`<span style="color:${t.dim};font-weight:400"> · ${x.notes}</span>`:''}</div><div style="font-size:10px;color:${t.dimmer}">${fD(x.date)} · ${info}</div></div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700;color:#51cf66">+$${fN(x.calculatedPay)}</span><button class="del-btn" style="color:${t.dimmer}" onclick="delRecord('${x.id}',${x.syncedToMM?'true':'false'})">✕</button></div></div>`;
+    }).join("");
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">${MN[cm-1]}明細 (${mRecs.length} 筆)</div>
+      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋工作或備註..." value="${S.search}" oninput="S.search=this.value;render()">
+      ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows}
+    </div>`;
+  }
+
+  // ═══ JOBS ═══
+  else if(S.view==="jobs"){
+    if(S.editJobId){
+      const ej=S.jobs.find(j=>j.id===S.editJobId);
+      if(ej){
+        const typeBtns=["hourly","perSession","daily"].map(bt=>`<button class="tog-btn" style="background:${ej.billingType===bt?'#339af033':t.input};border-color:${ej.billingType===bt?'#339af0':t.ib};color:${ej.billingType===bt?'#339af0':t.dim}" onclick="editJobField('billingType','${bt}')">${billingLabel(bt)}</button>`).join("");
+        const colorBtns=COLORS.map(c=>`<button class="color-btn" style="background:${c};border:${ej.color===c?'3px solid #fff':'2px solid transparent'}" onclick="editJobField('color','${c}')"></button>`).join("");
+        html+=`<div class="card" style="background:${t.card}"><button class="sub-back" onclick="S.editJobId=null;render()">◀ 返回</button>
+          <div style="font-size:15px;font-weight:700;margin-bottom:14px">編輯工作</div>
+          <label class="label" style="color:${t.dim}">工作名稱</label>
+          <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${ej.name}" oninput="editJobField('name',this.value)">
+          <label class="label" style="color:${t.dim}">計費方式</label>
+          <div class="tog-row">${typeBtns}</div>
+          <label class="label" style="color:${t.dim}">${billingLabel(ej.billingType)}費率</label>
+          <div class="amt-row" style="background:${t.input};border-color:${t.ib}"><span class="dollar" style="color:${t.dim}">$</span><input type="number" inputmode="numeric" value="${ej.rate}" oninput="editJobField('rate',Number(this.value)||0)" style="color:${t.w};font-size:22px"></div>
+          ${ej.billingType==="perSession"?`<label class="label" style="color:${t.dim}">每堂時長（分鐘）</label><input type="number" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${ej.sessionDurationMinutes||''}" oninput="editJobField('sessionDurationMinutes',Number(this.value)||null)">`:''}
+          <label class="label" style="color:${t.dim}">顏色</label>
+          <div class="color-grid">${colorBtns}</div>
+          <div class="tog-row" style="margin-top:14px">
+            <button class="tog-btn" style="background:${ej.active!==false?'#51cf6622':t.input};border-color:${ej.active!==false?'#51cf66':t.ib};color:${ej.active!==false?'#51cf66':t.dim}" onclick="editJobField('active',true)">啟用</button>
+            <button class="tog-btn" style="background:${ej.active===false?'#ff6b6b22':t.input};border-color:${ej.active===false?'#ff6b6b':t.ib};color:${ej.active===false?'#ff6b6b':t.dim}" onclick="editJobField('active',false)">停用</button>
+          </div>
+          <button class="add-btn" style="background:linear-gradient(135deg,#ff6b6b,#e03131);margin-top:14px" onclick="if(confirm('確定刪除此工作？')){S.jobs=S.jobs.filter(j=>j.id!=='${ej.id}');S.editJobId=null;save();toast('已刪除');render()}">🗑️ 刪除工作</button>
+        </div>`;
+      }
+    } else {
+      let jobList=S.jobs.map(j=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid ${t.border};opacity:${j.active===false?0.5:1}"><div style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${j.color}"></span><div><div style="font-size:13px;font-weight:600">${j.name}${j.active===false?`<span style="color:${t.dimmer};font-size:10px;margin-left:4px">（已停用）</span>`:''}</div><div style="font-size:10px;color:${t.dimmer}">${billingLabel(j.billingType)} · $${fN(j.rate)}${j.billingType==="perSession"&&j.sessionDurationMinutes?' · '+j.sessionDurationMinutes+'分/堂':''}</div></div></div><button class="pill" style="background:#339af022;color:#339af0" onclick="S.editJobId='${j.id}';render()">編輯</button></div>`).join("");
+      if(!S.jobs.length)jobList=`<div style="color:${t.dimmer};font-size:12px;text-align:center;padding:16px">還沒有工作</div>`;
+
+      const nj=S.newJob;
+      const typeBtns=["hourly","perSession","daily"].map(bt=>`<button class="tog-btn" style="background:${nj.billingType===bt?'#339af033':t.input};border-color:${nj.billingType===bt?'#339af0':t.ib};color:${nj.billingType===bt?'#339af0':t.dim}" onclick="S.newJob.billingType='${bt}';render()">${billingLabel(bt)}</button>`).join("");
+      const colorBtns=COLORS.map(c=>`<button class="color-btn" style="background:${c};border:${nj.color===c?'3px solid #fff':'2px solid transparent'}" onclick="S.newJob.color='${c}';render()"></button>`).join("");
+
+      html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">💼 我的工作</div>${jobList}
+        <div style="border-top:1px solid ${t.border};padding-top:12px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">新增工作</div>
+        <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:6px" placeholder="工作名稱" value="${nj.name}" oninput="S.newJob.name=this.value">
+        <label class="label" style="color:${t.dim}">計費方式</label>
+        <div class="tog-row">${typeBtns}</div>
+        <label class="label" style="color:${t.dim}">${billingLabel(nj.billingType)}費率</label>
+        <div class="amt-row" style="background:${t.input};border-color:${t.ib}"><span class="dollar" style="color:${t.dim}">$</span><input type="number" inputmode="numeric" placeholder="0" value="${nj.rate}" oninput="S.newJob.rate=this.value" style="color:${t.w};font-size:22px"></div>
+        ${nj.billingType==="perSession"?`<label class="label" style="color:${t.dim}">每堂時長（分鐘）</label><input type="number" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" placeholder="例：50" value="${nj.sessionDurationMinutes}" oninput="S.newJob.sessionDurationMinutes=this.value">`:''}
+        <label class="label" style="color:${t.dim}">顏色</label>
+        <div class="color-grid">${colorBtns}</div>
+        <button class="add-btn" onclick="addJob()">新增工作</button></div></div>`;
+    }
+  }
+
+  // ═══ SETTINGS ═══
+  else if(S.view==="settings"){
+    if(S.sTab==="main"){
+      const synced=S.records.filter(r=>r.syncedToMM).length,unsynced=S.records.filter(r=>!r.syncedToMM).length;
+      html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:14px">設定</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid ${t.border}"><span style="font-size:13px">${S.dark?'🌙':'☀️'} 主題模式</span><button class="pill" style="padding:6px 14px;background:${S.dark?'#845ef722':'#fab00522'};color:${S.dark?'#845ef7':'#fab005'};border:1px solid ${S.dark?'#845ef744':'#fab00544'}" onclick="S.dark=!S.dark;save();render()">${S.dark?'深色模式':'淺色模式'}</button></div>
+        <label class="label" style="color:${t.dim}">每月目標薪資</label>
+        <div class="amt-row" style="background:${t.input};border-color:${t.ib}"><span class="dollar" style="color:${t.dim}">$</span><input type="number" inputmode="numeric" placeholder="例：50000" value="${S.settings.targetMonthlySalary||''}" oninput="S.settings.targetMonthlySalary=Math.max(0,Math.round(Number(this.value)||0));save()" style="color:${t.w};font-size:22px"></div>
+      </div>`;
+
+      html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:8px">🔗 同步至錢錢管家</div>
+        <div style="font-size:11px;color:${t.dim};margin-bottom:12px;line-height:1.5">同步為單向（薪資計算機 → 錢錢管家），如需修改或刪除已同步的收入紀錄，請至錢錢管家操作</div>
+        <label class="label" style="color:${t.dim}">同步模式</label>
+        <div class="tog-row" style="margin-bottom:10px">
+          <button class="tog-btn" style="background:${S.settings.syncMode==='auto'?'#339af033':t.input};border-color:${S.settings.syncMode==='auto'?'#339af0':t.ib};color:${S.settings.syncMode==='auto'?'#339af0':t.dim}" onclick="S.settings.syncMode='auto';save();render()">自動</button>
+          <button class="tog-btn" style="background:${S.settings.syncMode==='manual'?'#339af033':t.input};border-color:${S.settings.syncMode==='manual'?'#339af0':t.ib};color:${S.settings.syncMode==='manual'?'#339af0':t.dim}" onclick="S.settings.syncMode='manual';save();render()">手動</button>
+        </div>
+        ${S.settings.syncMode==='manual'?`<button class="add-btn" style="margin-top:8px" onclick="syncAllUnsynced()">同步未同步紀錄 (${unsynced} 筆)</button>`:''}
+        <div style="font-size:11px;color:${t.dimmer};margin-top:8px">已同步 ${synced} 筆 / 未同步 ${unsynced} 筆</div>
+      </div>`;
+
+      html+=`<div class="card" style="background:${t.card}">
+        <button class="setting-row" style="color:${t.text};border-bottom:1px solid ${t.border}" onclick="S.sTab='data';render()"><span>📦 匯出 / 匯入</span><span style="font-size:11px;color:${t.dimmer}">${S.records.length} 筆 ▶</span></button>
+      </div>`;
+    }
+    else if(S.sTab==="data"){
+      const jobOpts=`<option value="all">全部工作</option>`+S.jobs.map(j=>`<option value="${j.id}">${j.name}</option>`).join("");
+      html+=`<div class="card" style="background:${t.card}"><button class="sub-back" onclick="S.sTab='main';render()">◀ 返回設定</button><div style="font-size:15px;font-weight:700;margin-bottom:12px">📦 資料管理</div><div style="color:${t.dimmer};font-size:12px;margin-bottom:10px">目前共有 ${S.records.length} 筆紀錄</div>
+        <label class="label" style="color:${t.dim}">匯出範圍</label>
+        <select class="inp" id="exp-range" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:8px"><option value="current">當月紀錄</option><option value="all">全部紀錄</option></select>
+        <label class="label" style="color:${t.dim}">工作篩選</label>
+        <select class="inp" id="exp-job" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:14px">${jobOpts}</select>
+        <div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">匯出格式</div>
+        <div class="e-grid-3">
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('json')"><span style="font-size:18px">💾</span><span style="font-size:11px;font-weight:600">JSON</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('csv')"><span style="font-size:18px">📊</span><span style="font-size:11px;font-weight:600">CSV</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('markdown')"><span style="font-size:18px">📝</span><span style="font-size:11px;font-weight:600">Markdown</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('xlsx')"><span style="font-size:18px">📗</span><span style="font-size:11px;font-weight:600">Excel</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('docx')"><span style="font-size:18px">📘</span><span style="font-size:11px;font-weight:600">Word</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('pdf')"><span style="font-size:18px">📕</span><span style="font-size:11px;font-weight:600">PDF</span></button>
+        </div>
+        <div style="margin-top:10px"><button class="e-btn" style="width:100%;background:${t.input};border-color:#51cf6644;color:${t.dim};flex-direction:row;gap:8px;justify-content:center" onclick="exportToMM()"><span style="font-size:16px">💰</span><span style="font-size:11px;font-weight:600">匯出錢錢管家 JSON 格式</span></button></div>
+        <div style="border-top:1px solid ${t.border};margin-top:14px;padding-top:14px">
+          <div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">資料備份</div>
+          <div class="e-grid">
+            <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="impJSON()"><span style="font-size:18px">📥</span><span style="font-size:11px;font-weight:600">匯入備份</span><span style="font-size:9px">還原資料</span></button>
+            <button class="e-btn" style="background:${t.input};border-color:#ff6b6b44;color:${t.dim}" onclick="resetAll()"><span style="font-size:18px">🗑️</span><span style="font-size:11px;font-weight:600;color:#ff6b6b">清除資料</span><span style="font-size:9px">全部刪除</span></button>
+          </div>
+        </div></div>`;
+    }
+  }
+
+  document.getElementById("content").innerHTML=html;
+}
+
+// ─── Actions ───
+function addRecord(){
+  const f=S.af;const j=S.jobs.find(x=>x.id===f.jobId);
+  if(!j){toast("請選擇工作");return}
+  let rec={id:gId(),jobId:f.jobId,date:f.date,startTime:"",endTime:"",durationMinutes:0,breakMinutes:0,sessions:0,calculatedPay:0,notes:f.notes||"",createdAt:new Date().toISOString(),syncedToMM:false};
+  if(j.billingType==="hourly"){
+    rec.startTime=f.startTime;rec.endTime=f.endTime;rec.breakMinutes=f.breakMinutes||0;
+    rec.durationMinutes=timeDiff(f.startTime,f.endTime);
+    rec.calculatedPay=Math.round(Math.max(0,(rec.durationMinutes-rec.breakMinutes)/60)*j.rate);
+  }else if(j.billingType==="perSession"){
+    rec.sessions=f.sessions||1;
+    rec.calculatedPay=Math.round(rec.sessions*j.rate);
+  }else{
+    rec.calculatedPay=Math.round(j.rate);
+  }
+  if(rec.calculatedPay<=0){toast("薪資計算結果為 0");return}
+  S.records.unshift(rec);
+  if(S.settings.syncMode==="auto")syncRecord(rec);
+  save();toast("已新增！");S.view="dashboard";render();
+}
+function delRecord(id,synced){
+  if(synced)alert("此紀錄已同步至錢錢管家，刪除後請至錢錢管家手動移除對應收入紀錄");
+  S.records=S.records.filter(x=>x.id!==id);save();toast("已刪除");render();
+}
+function addJob(){
+  const nj=S.newJob;
+  if(!nj.name.trim()){toast("請輸入工作名稱");return}
+  if(!nj.rate||Number(nj.rate)<=0){toast("請輸入費率");return}
+  S.jobs.push({id:gId(),name:nj.name.trim(),billingType:nj.billingType,rate:Math.round(Number(nj.rate)),color:nj.color,sessionDurationMinutes:nj.billingType==="perSession"&&nj.sessionDurationMinutes?Number(nj.sessionDurationMinutes):null,active:true});
+  S.newJob={name:"",billingType:"hourly",rate:"",color:"#339AF0",sessionDurationMinutes:""};
+  save();toast("工作已新增！");render();
+}
+function editJobField(field,val){
+  const j=S.jobs.find(x=>x.id===S.editJobId);if(!j)return;
+  j[field]=val;save();
+  // Only re-render for fields that change layout (buttons/toggles), not text inputs
+  if(field!=='name'&&field!=='rate'&&field!=='sessionDurationMinutes')render();
+}
+function updatePreview(){
+  const f=S.af;const j=S.jobs.find(x=>x.id===f.jobId);if(!j)return;
+  let pay=0;
+  if(j.billingType==="hourly"){
+    const dur=timeDiff(f.startTime,f.endTime);
+    pay=Math.round(Math.max(0,(dur-(f.breakMinutes||0))/60)*j.rate);
+    const durEl=document.getElementById("dur-preview");
+    if(durEl)durEl.textContent=formatDuration(Math.max(0,dur-(f.breakMinutes||0)));
+  }else if(j.billingType==="perSession"){pay=Math.round((f.sessions||0)*j.rate)}
+  else{pay=Math.round(j.rate)}
+  const el=document.getElementById("pay-preview");if(el)el.textContent="$"+fN(pay);
+}
+
+// ─── Export ───
+async function doExp(format){
+  const data=getExportData();
+  if(!data.records.length){toast("沒有資料");return}
+  try{await ExportManager.doExport(format,data);toast(`${format.toUpperCase()} 已下載！`)}catch(e){console.error(e);toast("匯出失敗："+e.message)}
+}
+function exportToMM(){
+  const data=getExportData();if(!data.records.length){toast("沒有資料");return}
+  const mmTx=data.records.map(r=>{const j=data.jobs.find(x=>x.id===r.jobId);return{id:gId(),type:"income",amount:r.calculatedPay,category:"income",account:"bank",note:"[薪資] "+(j?.name||"")+(r.notes?" · "+r.notes:""),date:r.date}});
+  const str="\ufeff"+JSON.stringify({transactions:mmTx,exportDate:new Date().toISOString()},null,2);
+  ExportManager.download(new Blob([str],{type:"application/json;charset=utf-8"}),`薪資_錢錢管家格式_${new Date().toISOString().slice(0,10)}.json`);
+  toast("已匯出錢錢管家格式");
+}
+
+// ─── Import / Reset ───
+function impJSON(){const i=document.createElement("input");i.type="file";i.accept=".json";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.records){S.records=d.records;if(d.jobs)S.jobs=d.jobs;if(d.settings)S.settings={...S.settings,...d.settings};save();toast(`已匯入 ${d.records.length} 筆！`);render()}else toast("格式錯誤")}catch{toast("匯入失敗")}};r.readAsText(f)};i.click()}
+function resetAll(){if(confirm("確定要清除所有資料嗎？")){S.records=[];S.jobs=[];S.settings={targetMonthlySalary:0,syncMode:"manual"};["wc2-jobs","wc2-records","wc2-settings"].forEach(k=>localStorage.removeItem(k));toast("已清除");render()}}
+
+render();
+</script>
+</body>
+</html>

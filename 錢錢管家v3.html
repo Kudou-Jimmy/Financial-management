@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="錢錢管家">
+<meta name="theme-color" content="#111111">
+<title>錢錢管家 v3.0</title>
+<!-- SheetJS -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<!-- docx -->
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans TC',-apple-system,'Helvetica Neue',sans-serif;max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);transition:background .3s,color .3s}
+body.dark{background:#111;color:#e0e0e0}
+body.light{background:#f5f5f5;color:#1a1a1a}
+.header{padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:18px;font-weight:800}
+.month-nav{display:flex;align-items:center;gap:6px}
+.month-nav button{background:none;border:none;font-size:13px;cursor:pointer;padding:4px}
+.month-label{font-size:12px;font-weight:600;min-width:80px;text-align:center}
+.nav{display:flex;justify-content:space-around;padding:2px 8px 6px}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:none;cursor:pointer;padding:5px 6px;border-radius:8px;transition:all .2s;font-family:inherit;font-size:10px}
+.nav-item .icon{font-size:16px}
+.content{flex:1;padding:10px 14px 20px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.card{border-radius:12px;padding:14px}
+.row3{display:flex;gap:6px}
+.sc{flex:1;border-radius:10px;padding:10px 8px}
+.sl{font-size:10px;margin-bottom:3px}
+.sv{font-size:15px;font-weight:800}
+.label{display:block;font-size:11px;margin:12px 0 5px;font-weight:600}
+.inp{width:100%;border-radius:9px;padding:9px 11px;font-size:13px;outline:none;box-sizing:border-box;font-family:inherit;border-width:1px;border-style:solid}
+.amt-row{display:flex;align-items:center;border-radius:9px;padding:0 11px;border-width:1px;border-style:solid}
+.amt-row .dollar{font-size:18px;font-weight:700;margin-right:4px}
+.amt-row input{flex:1;background:transparent;border:none;font-size:26px;font-weight:800;padding:6px 0;outline:none;font-family:inherit}
+.tog-row{display:flex;gap:6px}
+.tog-btn{flex:1;padding:9px 0;border-radius:9px;border:1px solid;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cat-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:9px;border:1px solid;cursor:pointer;font-family:inherit;font-size:10px;transition:all .2s}
+.add-btn{width:100%;margin-top:16px;padding:12px 0;border-radius:10px;border:none;background:linear-gradient(135deg,#339af0,#20c997);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.tx-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.tx-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.del-btn{background:none;border:none;font-size:13px;cursor:pointer;padding:3px 5px;border-radius:6px}
+.p-bg{height:7px;border-radius:4px;overflow:hidden}
+.p-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.e-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.e-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.e-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 6px;border-radius:10px;border:1px solid;cursor:pointer;font-family:inherit;transition:all .2s}
+.pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.sync-tag{display:inline-block;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:600;background:#339af022;color:#339af0;margin-left:4px}
+.alert{border:1px solid #ff6b6b44;border-radius:10px;padding:10px 12px;margin-bottom:4px}
+.daily-bars{display:flex;align-items:flex-end;gap:2px;height:55px;padding:0 2px}
+.daily-bar{flex:1;min-width:0;border-radius:2px;transition:height .3s}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);color:#fff;padding:7px 18px;border-radius:18px;font-size:13px;z-index:999;font-weight:600;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.emoji-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.emoji-btn{width:34px;height:34px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.color-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.color-btn{width:28px;height:28px;border-radius:50%;cursor:pointer}
+.acc-pills{display:flex;gap:6px;flex-wrap:wrap}
+.acc-pill{padding:7px 14px;border-radius:9px;font-size:12px;border:1px solid;cursor:pointer;font-family:inherit;font-weight:600}
+.sub-back{background:none;border:none;font-size:12px;cursor:pointer;margin-bottom:10px;font-family:inherit;color:#339af0}
+.setting-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 0;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left;font-size:13px}
+select.inp{-webkit-appearance:none;appearance:none}
+</style>
+</head>
+<body class="dark">
+<div class="toast" id="toast"></div>
+<div class="header">
+  <div class="logo">💰 錢錢管家</div>
+  <div class="month-nav">
+    <button onclick="chMonth(-1)">◀</button>
+    <span class="month-label" id="mLabel"></span>
+    <button onclick="chMonth(1)">▶</button>
+  </div>
+</div>
+<div class="nav" id="nav"></div>
+<div class="content" id="content"></div>
+
+<script>
+const DC=[
+  {id:"food",label:"飲食",icon:"🍜",color:"#E8590C"},
+  {id:"transport",label:"交通",icon:"🚇",color:"#5C7CFA"},
+  {id:"shopping",label:"購物",icon:"🛍️",color:"#F06595"},
+  {id:"entertainment",label:"娛樂",icon:"🎮",color:"#845EF7"},
+  {id:"bills",label:"帳單",icon:"📄",color:"#20C997"},
+  {id:"health",label:"醫療",icon:"💊",color:"#FF6B6B"},
+  {id:"education",label:"教育",icon:"📚",color:"#339AF0"},
+  {id:"other",label:"其他",icon:"📌",color:"#868E96"}
+];
+const DA=[{id:"cash",label:"現金",icon:"💵"},{id:"bank",label:"銀行",icon:"🏦"},{id:"credit",label:"信用卡",icon:"💳"}];
+const MN=["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
+const EMOJIS=["🏠","🚗","📱","🎵","🏋️","🐾","💼","🎁","✈️","🍺","☕","🧾","💡","🔧","👶","🎓","💅","🏥","📦","🎯"];
+const COLORS=["#E8590C","#5C7CFA","#F06595","#845EF7","#20C997","#FF6B6B","#339AF0","#868E96","#F59F00","#37B24D","#E64980","#4DABF7"];
+
+const S={
+  tx:JSON.parse(localStorage.getItem("mm2-tx")||"[]"),
+  budget:JSON.parse(localStorage.getItem("mm2-budget")||"0"),
+  cats:JSON.parse(localStorage.getItem("mm2-cats")||JSON.stringify(DC)),
+  accounts:JSON.parse(localStorage.getItem("mm2-accounts")||JSON.stringify(DA)),
+  goals:JSON.parse(localStorage.getItem("mm2-goals")||"[]"),
+  fixed:JSON.parse(localStorage.getItem("mm2-fixed")||"[]"),
+  dark:JSON.parse(localStorage.getItem("mm2-dark")??"true"),
+  view:"dashboard",
+  month:gMK(new Date()),
+  search:"",
+  sTab:"main",
+  af:{type:"expense",amount:"",category:"food",account:"cash",note:"",date:new Date().toISOString().slice(0,10)},
+  newCat:{label:"",icon:"🏠",color:"#E8590C"},
+  newGoal:{name:"",target:"",saved:""},
+  newFixed:{name:"",amount:"",category:"bills",day:"1"}
+};
+
+function save(){
+  localStorage.setItem("mm2-tx",JSON.stringify(S.tx));
+  localStorage.setItem("mm2-budget",JSON.stringify(S.budget));
+  localStorage.setItem("mm2-cats",JSON.stringify(S.cats));
+  localStorage.setItem("mm2-accounts",JSON.stringify(S.accounts));
+  localStorage.setItem("mm2-goals",JSON.stringify(S.goals));
+  localStorage.setItem("mm2-fixed",JSON.stringify(S.fixed));
+  localStorage.setItem("mm2-dark",JSON.stringify(S.dark));
+}
+
+// ═══ 跨分頁同步：監聽薪資計算機寫入的資料 ═══
+window.addEventListener("storage",function(e){
+  if(e.key==="mm2-tx"&&e.newValue){
+    const incoming=JSON.parse(e.newValue);
+    const existIds=new Set(S.tx.map(t=>t.id));
+    const newItems=incoming.filter(t=>!existIds.has(t.id));
+    if(newItems.length){
+      S.tx=newItems.concat(S.tx);
+      save();render();
+      toast("已同步 "+newItems.length+" 筆薪資紀錄");
+    }
+  }
+  if(e.key==="mm2-dark"&&e.newValue!=null){
+    S.dark=JSON.parse(e.newValue);render();
+  }
+});
+function gId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function gMK(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
+function fN(n){return n.toLocaleString("zh-TW")}
+function fD(iso){const d=new Date(iso);return `${d.getMonth()+1}/${d.getDate()}`}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2000)}
+
+function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));render()}
+function setView(v){S.view=v;if(v==="settings")S.sTab="main";render()}
+
+function T(){
+  const d=S.dark;
+  return{bg:d?"#111":"#f5f5f5",card:d?"#1a1a1a":"#fff",border:d?"#2a2a2a":"#e0e0e0",input:d?"#222":"#f0f0f0",
+    ib:d?"#333":"#d0d0d0",text:d?"#e0e0e0":"#1a1a1a",dim:d?"#888":"#666",dimmer:d?"#555":"#aaa",
+    w:d?"#fff":"#1a1a1a",toast:d?"#2d2d2d":"#333",niA:d?"#1e1e1e":"#e8e8e8"};
+}
+
+function applyTheme(){document.body.className=S.dark?"dark":"light";document.querySelector('meta[name=theme-color]').content=S.dark?"#111111":"#f5f5f5"}
+
+// ═══════════════════════════════════════
+// ExportManager — plugin-style exporters
+// ═══════════════════════════════════════
+const ExportManager={
+  exporters:{},
+  register(format,fn){this.exporters[format]=fn},
+  async doExport(format,data){
+    const exporter=this.exporters[format];
+    if(!exporter){toast("不支援的格式");return}
+    const result=await exporter(data);
+    if(result)this.download(result.blob,result.filename);
+  },
+  download(blob,filename){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+};
+
+function getExportData(){
+  const range=document.getElementById("exp-range")?.value||"all";
+  let tx=S.tx;
+  if(range==="current")tx=tx.filter(x=>gMK(new Date(x.date))===S.month);
+  return{transactions:tx.sort((a,b)=>a.date.localeCompare(b.date)),categories:S.cats,accounts:S.accounts,budget:S.budget,goals:S.goals,fixedExpenses:S.fixed};
+}
+
+ExportManager.register("json",(data)=>{
+  const str="\ufeff"+JSON.stringify({...data,exportDate:new Date().toISOString()},null,2);
+  return{blob:new Blob([str],{type:"application/json;charset=utf-8"}),filename:`錢錢管家_${new Date().toISOString().slice(0,10)}.json`};
+});
+
+ExportManager.register("csv",(data)=>{
+  const h="日期,類型,類別,帳戶,金額,備註";
+  const rows=data.transactions.map(x=>{
+    const c=data.categories.find(c=>c.id===x.category);
+    const a=data.accounts.find(a=>a.id===x.account);
+    return`${x.date},${x.type==="income"?"收入":"支出"},${c?.label||""},${a?.label||""},${x.amount},"${(x.note||"").replace(/"/g,'""')}"`;
+  });
+  return{blob:new Blob(["\uFEFF"+[h,...rows].join("\n")],{type:"text/csv;charset=utf-8"}),filename:`錢錢管家_${new Date().toISOString().slice(0,10)}.csv`};
+});
+
+ExportManager.register("markdown",(data)=>{
+  const tx=data.transactions;
+  const tE=tx.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+  const tI=tx.filter(x=>x.type==="income").reduce((s,x)=>s+x.amount,0);
+  let md="# 錢錢管家紀錄\n\n";
+  md+=`> 匯出時間：${new Date().toLocaleString("zh-TW")}\n\n`;
+  md+="| 日期 | 類型 | 類別 | 帳戶 | 金額 | 備註 |\n";
+  md+="|------|------|------|------|------|------|\n";
+  tx.forEach(x=>{
+    const c=data.categories.find(c=>c.id===x.category);
+    const a=data.accounts.find(a=>a.id===x.account);
+    md+=`| ${x.date} | ${x.type==="income"?"收入":"支出"} | ${c?.label||""} | ${a?.label||""} | $${fN(x.amount)} | ${x.note||""} |\n`;
+  });
+  md+=`\n**總支出：$${fN(tE)}　總收入：$${fN(tI)}　結餘：$${fN(tI-tE)}**\n`;
+  return{blob:new Blob([md],{type:"text/markdown;charset=utf-8"}),filename:`錢錢管家_${new Date().toISOString().slice(0,10)}.md`};
+});
+
+ExportManager.register("xlsx",(data)=>{
+  const tx=data.transactions;
+  const rows=tx.map(x=>{
+    const c=data.categories.find(c=>c.id===x.category);
+    const a=data.accounts.find(a=>a.id===x.account);
+    return{"日期":x.date,"類型":x.type==="income"?"收入":"支出","類別":c?.label||"","帳戶":a?.label||"","金額":x.amount,"備註":x.note||""};
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws["!cols"]=[{wch:12},{wch:6},{wch:8},{wch:8},{wch:10},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,"紀錄");
+  // Summary sheet
+  const catSummary={};
+  tx.filter(x=>x.type==="expense").forEach(x=>{
+    const c=data.categories.find(c=>c.id===x.category);
+    const n=c?.label||"其他";
+    if(!catSummary[n])catSummary[n]=0;catSummary[n]+=x.amount;
+  });
+  const sumRows=Object.entries(catSummary).map(([k,v])=>({"類別":k,"總金額":v}));
+  sumRows.push({"類別":"合計","總金額":tx.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0)});
+  const ws2=XLSX.utils.json_to_sheet(sumRows);
+  ws2["!cols"]=[{wch:10},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws2,"摘要");
+  const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  return{blob:new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),filename:`錢錢管家_${new Date().toISOString().slice(0,10)}.xlsx`};
+});
+
+ExportManager.register("docx",async(data)=>{
+  const{Document,Packer,Paragraph,Table,TableRow,TableCell,TextRun,WidthType,AlignmentType,HeadingLevel}=docx;
+  const tx=data.transactions;
+  const tE=tx.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+  const tI=tx.filter(x=>x.type==="income").reduce((s,x)=>s+x.amount,0);
+  const hdr=["日期","類型","類別","帳戶","金額","備註"].map(text=>
+    new TableCell({children:[new Paragraph({children:[new TextRun({text,bold:true,size:20,font:"Microsoft JhengHei"})]})],width:{size:1500,type:WidthType.DXA}})
+  );
+  const dataRows=tx.map(x=>{
+    const c=data.categories.find(c=>c.id===x.category);
+    const a=data.accounts.find(a=>a.id===x.account);
+    return new TableRow({children:[x.date,x.type==="income"?"收入":"支出",c?.label||"",a?.label||"","$"+fN(x.amount),x.note||""].map(text=>
+      new TableCell({children:[new Paragraph({children:[new TextRun({text:String(text),size:18,font:"Microsoft JhengHei"})]})],width:{size:1500,type:WidthType.DXA}})
+    )});
+  });
+  const doc=new Document({sections:[{children:[
+    new Paragraph({text:"錢錢管家紀錄",heading:HeadingLevel.HEADING_1,alignment:AlignmentType.CENTER,spacing:{after:200}}),
+    new Paragraph({children:[new TextRun({text:`匯出時間：${new Date().toLocaleString("zh-TW")}`,size:18,color:"888888"})],spacing:{after:300}}),
+    new Table({rows:[new TableRow({children:hdr}),...dataRows],width:{size:100,type:WidthType.PERCENTAGE}}),
+    new Paragraph({children:[new TextRun({text:`總支出：$${fN(tE)}　總收入：$${fN(tI)}　結餘：$${fN(tI-tE)}`,bold:true,size:22,font:"Microsoft JhengHei"})],spacing:{before:300},alignment:AlignmentType.RIGHT})
+  ]}]});
+  const blob=await Packer.toBlob(doc);
+  return{blob,filename:`錢錢管家_${new Date().toISOString().slice(0,10)}.docx`};
+});
+
+ExportManager.register("pdf",(data)=>{
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape"});
+  const tx=data.transactions;
+  const tE=tx.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+  const tI=tx.filter(x=>x.type==="income").reduce((s,x)=>s+x.amount,0);
+  doc.setFontSize(18);doc.text("Money Manager Records",14,18);
+  doc.setFontSize(10);doc.text(`Exported: ${new Date().toLocaleString("zh-TW")}`,14,26);
+  const tableData=tx.map(x=>{
+    const c=data.categories.find(c=>c.id===x.category);
+    const a=data.accounts.find(a=>a.id===x.account);
+    return[x.date,x.type==="income"?"Income":"Expense",c?.label||"",a?.label||"","$"+fN(x.amount),x.note||""];
+  });
+  doc.autoTable({
+    startY:32,
+    head:[["Date","Type","Category","Account","Amount","Note"]],
+    body:tableData,
+    styles:{fontSize:9,cellPadding:3},
+    headStyles:{fillColor:[51,154,240]},
+    alternateRowStyles:{fillColor:[240,245,255]},
+    didDrawPage:()=>{doc.setFontSize(11);doc.text(`Expense: $${fN(tE)}  Income: $${fN(tI)}  Balance: $${fN(tI-tE)}`,14,doc.internal.pageSize.height-10)}
+  });
+  return{blob:doc.output("blob"),filename:`錢錢管家_${new Date().toISOString().slice(0,10)}.pdf`};
+});
+
+// ═══════════════════════════════════════
+// Charts (SVG donut + daily bars)
+// ═══════════════════════════════════════
+function donut(data,t){
+  const total=data.reduce((s,d)=>s+d.value,0);
+  if(total===0)return `<svg width="170" height="170" viewBox="0 0 180 180"><circle cx="90" cy="90" r="70" fill="none" stroke="${t.border}" stroke-width="20"/><text x="90" y="90" text-anchor="middle" dominant-baseline="central" fill="${t.dim}" font-size="13">無資料</text></svg>`;
+  let cum=0,paths="";
+  data.filter(d=>d.value>0).forEach(d=>{
+    const f=d.value/total,s=cum;cum+=f;
+    const sa=s*2*Math.PI-Math.PI/2,ea=(s+f)*2*Math.PI-Math.PI/2,r=70,cx=90,cy=90;
+    if(f>=.9999)paths+=`<path d="M ${cx-r} ${cy} A ${r} ${r} 0 1 1 ${cx+r} ${cy} A ${r} ${r} 0 1 1 ${cx-r} ${cy}" fill="none" stroke="${d.color}" stroke-width="20"/>`;
+    else paths+=`<path d="M ${cx+r*Math.cos(sa)} ${cy+r*Math.sin(sa)} A ${r} ${r} 0 ${f>.5?1:0} 1 ${cx+r*Math.cos(ea)} ${cy+r*Math.sin(ea)}" fill="none" stroke="${d.color}" stroke-width="20"/>`;
+  });
+  return `<svg width="170" height="170" viewBox="0 0 180 180">${paths}<text x="90" y="80" text-anchor="middle" dominant-baseline="central" fill="${t.dimmer}" font-size="11">總支出</text><text x="90" y="100" text-anchor="middle" dominant-baseline="central" fill="${t.w}" font-size="17" font-weight="700">$${fN(total)}</text></svg>`;
+}
+
+function bars(mk,t){
+  const days={};
+  S.tx.filter(x=>gMK(new Date(x.date))===mk&&x.type==="expense").forEach(x=>{const d=new Date(x.date).getDate();days[d]=(days[d]||0)+x.amount});
+  const[y,m]=mk.split("-").map(Number),dim=new Date(y,m,0).getDate(),max=Math.max(...Object.values(days),1);
+  let h="";for(let i=1;i<=dim;i++){const v=days[i]||0;const ht=v>0?Math.max(4,(v/max)*48):2;
+    h+=`<div style="flex:1;min-width:0"><div class="daily-bar" style="height:${ht}px;background:${v>0?'linear-gradient(180deg,#f06595,#e8590c)':t.border}"></div></div>`}
+  return `<div class="daily-bars">${h}</div><div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9px;color:${t.dimmer}"><span>1日</span><span>${dim}日</span></div>`;
+}
+
+// ═══════════════════════════════════════
+// UI Render
+// ═══════════════════════════════════════
+function render(){
+  applyTheme();
+  const t=T(),[cy,cm]=S.month.split("-").map(Number);
+  document.getElementById("mLabel").textContent=`${cy}年 ${MN[cm-1]}`;
+  document.getElementById("mLabel").style.color=t.dim;
+  document.querySelectorAll(".month-nav button").forEach(b=>b.style.color=t.dim);
+  document.querySelector(".nav").style.borderBottom=`1px solid ${t.border}`;
+
+  const NAVS=[{id:"dashboard",icon:"📊",label:"總覽"},{id:"add",icon:"✏️",label:"記帳"},{id:"history",icon:"📋",label:"明細"},{id:"goals",icon:"🎯",label:"目標"},{id:"settings",icon:"⚙️",label:"設定"}];
+  document.getElementById("nav").innerHTML=NAVS.map(n=>`<button class="nav-item" style="color:${S.view===n.id?t.text:t.dimmer};background:${S.view===n.id?t.niA:'none'}" onclick="setView('${n.id}')"><span class="icon">${n.icon}</span>${n.label}</button>`).join("");
+
+  const mTx=S.tx.filter(x=>gMK(new Date(x.date))===S.month);
+  const tE=mTx.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+  const tI=mTx.filter(x=>x.type==="income").reduce((s,x)=>s+x.amount,0);
+  const bal=tI-tE;
+  const catD=S.cats.map(c=>({...c,value:mTx.filter(x=>x.type==="expense"&&x.category===c.id).reduce((s,x)=>s+x.amount,0)}));
+
+  const pMK=(()=>{const d=new Date(cy,cm-2,1);return gMK(d)})();
+  const pTx=S.tx.filter(x=>gMK(new Date(x.date))===pMK);
+  const pE=pTx.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+  const diff=tE-pE,pct=pE>0?((diff/pE)*100).toFixed(0):null;
+
+  const bPct=S.budget>0?Math.min((tE/S.budget)*100,100):0;
+  const bOver=S.budget>0&&tE>S.budget;
+
+  const today=new Date().getDate();
+  const upF=S.fixed.filter(f=>{const d=parseInt(f.day);return d>=today&&d<=today+3});
+
+  let html="";
+
+  // ═══ DASHBOARD ═══
+  if(S.view==="dashboard"){
+    if(upF.length>0){
+      html+=`<div class="alert" style="background:${S.dark?'#ff6b6b18':'#fff0f0'}"><div style="font-size:12px;font-weight:700;color:#ff6b6b;margin-bottom:6px">⏰ 近期固定支出</div>`;
+      upF.forEach(f=>{html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span style="font-size:12px">${f.name}（每月${f.day}日）</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:#ff6b6b">$${fN(f.amount)}</span><button class="pill" style="background:#339af022;color:#339af0" onclick="qkFixed('${f.id}')">快速記帳</button></div></div>`});
+      html+=`</div>`;
+    }
+    html+=`<div class="row3">
+      <div class="sc" style="background:${t.card};border-left:3px solid #ff6b6b"><div class="sl" style="color:${t.dim}">支出</div><div class="sv" style="color:#ff6b6b">$${fN(tE)}</div></div>
+      <div class="sc" style="background:${t.card};border-left:3px solid #51cf66"><div class="sl" style="color:${t.dim}">收入</div><div class="sv" style="color:#51cf66">$${fN(tI)}</div></div>
+      <div class="sc" style="background:${t.card};border-left:3px solid #339af0"><div class="sl" style="color:${t.dim}">結餘</div><div class="sv" style="color:${bal>=0?'#339af0':'#ff6b6b'}">$${fN(bal)}</div></div>
+    </div>`;
+
+    if(pE>0)html+=`<div class="card" style="background:${t.card};display:flex;justify-content:space-between;align-items:center;padding:10px 14px"><span style="font-size:12px;color:${t.dim}">vs 上月支出</span><span style="font-size:13px;font-weight:700;color:${diff>0?'#ff6b6b':'#51cf66'}">${diff>0?'▲':'▼'} $${fN(Math.abs(diff))} (${diff>0?'+':''}${pct}%)</span></div>`;
+
+    if(S.budget>0){
+      const bg=bOver?"linear-gradient(90deg,#ff6b6b,#e03131)":bPct>80?"linear-gradient(90deg,#fab005,#e8590c)":"linear-gradient(90deg,#51cf66,#20c997)";
+      html+=`<div class="card" style="background:${t.card}"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:${t.dim};font-size:12px">預算進度</span><span style="color:${bOver?'#ff6b6b':t.dim};font-size:12px;font-weight:600">${bOver?'超支！':'剩餘 $'+fN(S.budget-tE)}</span></div><div class="p-bg" style="background:${t.border}"><div class="p-fill" style="width:${bPct}%;background:${bg}"></div></div><div style="color:${t.dimmer};font-size:10px;margin-top:3px">$${fN(tE)} / $${fN(S.budget)}</div></div>`;
+    }
+
+    const catList=catD.filter(c=>c.value>0).sort((a,b)=>b.value-a.value).map(c=>{
+      let cmp="";if(pE>0){const pv=pTx.filter(x=>x.type==="expense"&&x.category===c.id).reduce((s,x)=>s+x.amount,0);const d=c.value-pv;if(pv>0||c.value>0)cmp=`<span style="font-size:9px;color:${d>0?'#ff6b6b':'#51cf66'};margin-left:4px">${d>0?'▲'+fN(d):d<0?'▼'+fN(Math.abs(d)):'—'}</span>`}
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><div style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c.color}"></span><span style="font-size:12px">${c.icon} ${c.label}</span>${cmp}</div><span style="font-size:12px;font-weight:600">$${fN(c.value)}</span></div>`;
+    }).join("");
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:13px;color:${t.dim};margin-bottom:10px;font-weight:600">支出分佈</div><div style="display:flex;justify-content:center;margin-bottom:12px">${donut(catD,t)}</div>${catList||`<div style="color:${t.dimmer};font-size:12px;text-align:center;padding:10px">本月尚無支出</div>`}</div>`;
+
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:13px;color:${t.dim};margin-bottom:10px;font-weight:600">每日支出</div>${bars(S.month,t)}</div>`;
+
+    let accHtml=S.accounts.map(a=>{
+      const aE=mTx.filter(x=>x.type==="expense"&&x.account===a.id).reduce((s,x)=>s+x.amount,0);
+      const aI=mTx.filter(x=>x.type==="income"&&x.account===a.id).reduce((s,x)=>s+x.amount,0);
+      let r="";if(aE>0)r+=`<span style="font-size:11px;color:#ff6b6b;margin-right:8px">-$${fN(aE)}</span>`;
+      if(aI>0)r+=`<span style="font-size:11px;color:#51cf66">+$${fN(aI)}</span>`;
+      if(!aE&&!aI)r=`<span style="font-size:11px;color:${t.dimmer}">—</span>`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span style="font-size:12px">${a.icon} ${a.label}</span><div>${r}</div></div>`;
+    }).join("");
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:13px;color:${t.dim};margin-bottom:10px;font-weight:600">帳戶支出分佈</div>${accHtml}</div>`;
+  }
+
+  // ═══ ADD ═══
+  else if(S.view==="add"){
+    const f=S.af;
+    const accBtns=S.accounts.map(a=>`<button class="acc-pill" style="background:${f.account===a.id?(S.dark?'#339af033':'#339af022'):'transparent'};color:${f.account===a.id?'#339af0':t.dim};border-color:${f.account===a.id?'#339af0':t.ib}" onclick="S.af.account='${a.id}';render()">${a.icon} ${a.label}</button>`).join("");
+    const catBtns=S.cats.map(c=>`<button class="cat-btn" style="background:${f.category===c.id?c.color+'33':t.input};border-color:${f.category===c.id?c.color:t.ib};color:${f.category===c.id?t.text:t.dim}" onclick="S.af.category='${c.id}';render()"><span style="font-size:16px">${c.icon}</span>${c.label}</button>`).join("");
+
+    html+=`<div class="card" style="background:${t.card}">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">新增紀錄</div>
+      <div class="tog-row">
+        <button class="tog-btn" style="background:${f.type==='expense'?'#ff6b6b22':t.input};border-color:${f.type==='expense'?'#ff6b6b':t.ib};color:${f.type==='expense'?'#ff6b6b':t.dim}" onclick="S.af.type='expense';render()">💸 支出</button>
+        <button class="tog-btn" style="background:${f.type==='income'?'#51cf6622':t.input};border-color:${f.type==='income'?'#51cf66':t.ib};color:${f.type==='income'?'#51cf66':t.dim}" onclick="S.af.type='income';render()">💰 收入</button>
+      </div>
+      <label class="label" style="color:${t.dim}">金額</label>
+      <div class="amt-row" style="background:${t.input};border-color:${t.ib}">
+        <span class="dollar" style="color:${t.dim}">$</span>
+        <input type="number" inputmode="numeric" placeholder="0" value="${f.amount}" oninput="S.af.amount=this.value" style="color:${t.w}">
+      </div>
+      <label class="label" style="color:${t.dim}">帳戶</label>
+      <div class="acc-pills">${accBtns}</div>
+      ${f.type==='expense'?`<label class="label" style="color:${t.dim}">類別</label><div class="cat-grid">${catBtns}</div>`:''}
+      <label class="label" style="color:${t.dim}">日期</label>
+      <input type="date" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${f.date}" oninput="S.af.date=this.value">
+      <label class="label" style="color:${t.dim}">備註（選填）</label>
+      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" placeholder="例：午餐便當" value="${f.note||''}" oninput="S.af.note=this.value">
+      <button class="add-btn" onclick="addTx()">✅ 新增</button>
+    </div>`;
+  }
+
+  // ═══ HISTORY ═══
+  else if(S.view==="history"){
+    const q=S.search.toLowerCase();
+    const filtered=mTx.filter(x=>{if(!q)return true;const c=S.cats.find(c=>c.id===x.category);return(x.note||"").toLowerCase().includes(q)||(c?.label||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    let rows=filtered.map(x=>{
+      const c=S.cats.find(c=>c.id===x.category);const a=S.accounts.find(a=>a.id===x.account);
+      const isSynced=x.note&&x.note.startsWith("[薪資]");
+      const syncTag=isSynced?`<span class="sync-tag">薪資計算機</span>`:"";
+      return `<div class="tx-row" style="border-bottom:1px solid ${t.border}"><div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0"><div class="tx-icon" style="background:${x.type==='income'?'#51cf6622':(c?.color||'#666')+'22'}">${x.type==='income'?'💰':c?.icon||'📌'}</div><div style="min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.type==='income'?'收入':c?.label||'其他'}${syncTag}${x.note?`<span style="color:${t.dim};font-weight:400"> · ${isSynced?x.note.slice(4):x.note}</span>`:''}</div><div style="font-size:10px;color:${t.dimmer}">${fD(x.date)}${a?' · '+a.icon+a.label:''}</div></div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700;color:${x.type==='income'?'#51cf66':'#ff6b6b'}">${x.type==='income'?'+':'-'}$${fN(x.amount)}</span><button class="del-btn" style="color:${t.dimmer}" onclick="delTx('${x.id}')">✕</button></div></div>`;
+    }).join("");
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">${MN[cm-1]}明細 (${mTx.length} 筆)</div>
+      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋備註或類別..." value="${S.search}" oninput="S.search=this.value;render()">
+      ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows}
+    </div>`;
+  }
+
+  // ═══ GOALS ═══
+  else if(S.view==="goals"){
+    let gHtml=S.goals.length===0?`<div style="color:${t.dimmer};font-size:12px;text-align:center;padding:16px">還沒有目標，建立一個吧！</div>`:"";
+    S.goals.forEach(g=>{
+      const p=Math.min((g.saved/g.target)*100,100),done=g.saved>=g.target;
+      gHtml+=`<div style="margin-bottom:14px;padding:10px 0;border-bottom:1px solid ${t.border}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:600">${done?'🎉 ':''}${g.name}</span><button class="del-btn" style="color:${t.dimmer}" onclick="S.goals=S.goals.filter(x=>x.id!=='${g.id}');save();render()">✕</button></div><div class="p-bg" style="background:${t.border}"><div class="p-fill" style="width:${p}%;background:${done?'linear-gradient(90deg,#51cf66,#20c997)':'linear-gradient(90deg,#339af0,#5c7cfa)'}"></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span style="font-size:11px;color:${t.dim}">$${fN(g.saved)} / $${fN(g.target)} (${p.toFixed(0)}%)</span><div style="display:flex;gap:4px"><button class="pill" style="background:#51cf6622;color:#51cf66" onclick="updGoal('${g.id}',1)">+存入</button><button class="pill" style="background:#ff6b6b22;color:#ff6b6b" onclick="updGoal('${g.id}',-1)">-取出</button></div></div></div>`;
+    });
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">🎯 儲蓄目標</div>${gHtml}
+      <div style="border-top:1px solid ${t.border};padding-top:12px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">新增目標</div>
+      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:6px" placeholder="目標名稱（如：日本旅行基金）" value="${S.newGoal.name}" oninput="S.newGoal.name=this.value">
+      <div style="display:flex;gap:6px"><input type="number" inputmode="numeric" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};flex:1" placeholder="目標金額" value="${S.newGoal.target}" oninput="S.newGoal.target=this.value"><input type="number" inputmode="numeric" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};flex:1" placeholder="已存（選填）" value="${S.newGoal.saved}" oninput="S.newGoal.saved=this.value"></div>
+      <button class="add-btn" onclick="addGoal()">建立目標</button></div></div>`;
+
+    let fHtml=S.fixed.length===0?`<div style="color:${t.dimmer};font-size:12px;text-align:center;padding:16px">還沒有固定支出</div>`:"";
+    S.fixed.forEach(f=>{
+      const c=S.cats.find(c=>c.id===f.category);
+      fHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid ${t.border}"><div><div style="font-size:12px;font-weight:600">${c?.icon||'📌'} ${f.name}</div><div style="font-size:10px;color:${t.dimmer}">每月 ${f.day} 日</div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700;color:#ff6b6b">$${fN(f.amount)}</span><button class="pill" style="background:#339af022;color:#339af0" onclick="qkFixed('${f.id}')">記帳</button><button class="del-btn" style="color:${t.dimmer}" onclick="S.fixed=S.fixed.filter(x=>x.id!=='${f.id}');save();render()">✕</button></div></div>`;
+    });
+    let dayOpts="";for(let i=1;i<=28;i++)dayOpts+=`<option value="${i}">每月 ${i} 日</option>`;
+    html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">🔄 固定支出</div>${fHtml}
+      <div style="border-top:1px solid ${t.border};padding-top:12px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">新增固定支出</div>
+      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:6px" placeholder="名稱（如：房租）" value="${S.newFixed.name}" oninput="S.newFixed.name=this.value">
+      <div style="display:flex;gap:6px"><input type="number" inputmode="numeric" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};flex:1" placeholder="金額" value="${S.newFixed.amount}" oninput="S.newFixed.amount=this.value"><select class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};flex:1" onchange="S.newFixed.day=this.value">${dayOpts}</select></div>
+      <button class="add-btn" onclick="addFixed()">新增固定支出</button></div></div>`;
+  }
+
+  // ═══ SETTINGS ═══
+  else if(S.view==="settings"){
+    if(S.sTab==="main"){
+      html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:14px">設定</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid ${t.border}"><span style="font-size:13px">${S.dark?'🌙':'☀️'} 主題模式</span><button class="pill" style="padding:6px 14px;background:${S.dark?'#845ef722':'#fab00522'};color:${S.dark?'#845ef7':'#fab005'};border:1px solid ${S.dark?'#845ef744':'#fab00544'}" onclick="S.dark=!S.dark;save();render()">${S.dark?'深色模式':'淺色模式'}</button></div>
+        <label class="label" style="color:${t.dim}">每月預算上限</label>
+        <div class="amt-row" style="background:${t.input};border-color:${t.ib}"><span class="dollar" style="color:${t.dim}">$</span><input type="number" inputmode="numeric" placeholder="例：30000" value="${S.budget||''}" oninput="S.budget=Math.max(0,Math.round(Number(this.value)||0));save()" style="color:${t.w};font-size:22px"></div>
+        <button class="setting-row" style="color:${t.text};border-bottom:1px solid ${t.border}" onclick="S.sTab='categories';render()"><span>🏷️ 自訂類別</span><span style="font-size:11px;color:${t.dimmer}">${S.cats.length} 個 ▶</span></button>
+        <button class="setting-row" style="color:${t.text};border-bottom:1px solid ${t.border}" onclick="S.sTab='accounts';render()"><span>🏦 帳戶管理</span><span style="font-size:11px;color:${t.dimmer}">${S.accounts.length} 個 ▶</span></button>
+        <button class="setting-row" style="color:${t.text};border-bottom:1px solid ${t.border}" onclick="S.sTab='data';render()"><span>📦 資料管理</span><span style="font-size:11px;color:${t.dimmer}">${S.tx.length} 筆 ▶</span></button>
+      </div>`;
+    }
+    else if(S.sTab==="categories"){
+      let cList=S.cats.map((c,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid ${t.border}"><span style="font-size:13px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c.color};margin-right:6px"></span>${c.icon} ${c.label}</span>${i>=DC.length?`<button class="del-btn" style="color:${t.dimmer}" onclick="S.cats=S.cats.filter(x=>x.id!=='${c.id}');save();render()">✕</button>`:''}</div>`).join("");
+      let emojiB=EMOJIS.map(e=>`<button class="emoji-btn" style="border:${S.newCat.icon===e?'2px solid #339af0':'1px solid '+t.ib};background:${t.input}" onclick="S.newCat.icon='${e}';render()">${e}</button>`).join("");
+      let colorB=COLORS.map(c=>`<button class="color-btn" style="background:${c};border:${S.newCat.color===c?'3px solid #fff':'2px solid transparent'}" onclick="S.newCat.color='${c}';render()"></button>`).join("");
+      html+=`<div class="card" style="background:${t.card}"><button class="sub-back" onclick="S.sTab='main';render()">◀ 返回設定</button><div style="font-size:15px;font-weight:700;margin-bottom:12px">🏷️ 自訂類別</div>${cList}
+        <div style="border-top:1px solid ${t.border};padding-top:12px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">新增類別</div>
+        <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:8px" placeholder="類別名稱" maxlength="6" value="${S.newCat.label}" oninput="S.newCat.label=this.value">
+        <div style="font-size:11px;color:${t.dim};margin-bottom:4px">選擇圖示</div><div class="emoji-grid">${emojiB}</div>
+        <div style="font-size:11px;color:${t.dim};margin-bottom:4px">選擇顏色</div><div class="color-grid">${colorB}</div>
+        <div style="font-size:12px;margin-bottom:8px">預覽：<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${S.newCat.color};margin-right:4px"></span>${S.newCat.icon} ${S.newCat.label||'...'}</div>
+        <button class="add-btn" onclick="addCat()">新增類別</button></div></div>`;
+    }
+    else if(S.sTab==="accounts"){
+      let aList=S.accounts.map((a,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid ${t.border}"><span style="font-size:13px">${a.icon} ${a.label}</span>${i>=DA.length?`<button class="del-btn" style="color:${t.dimmer}" onclick="S.accounts=S.accounts.filter(x=>x.id!=='${a.id}');save();render()">✕</button>`:''}</div>`).join("");
+      html+=`<div class="card" style="background:${t.card}"><button class="sub-back" onclick="S.sTab='main';render()">◀ 返回設定</button><div style="font-size:15px;font-weight:700;margin-bottom:12px">🏦 帳戶管理</div>${aList}
+        <div style="border-top:1px solid ${t.border};padding-top:12px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">新增帳戶</div>
+        <div style="display:flex;gap:6px"><input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};flex:1" placeholder="帳戶名稱" id="newAccN"><button class="pill" style="padding:9px 16px;background:#339af022;color:#339af0;border:1px solid #339af044" onclick="addAcc()">新增</button></div></div></div>`;
+    }
+    else if(S.sTab==="data"){
+      html+=`<div class="card" style="background:${t.card}"><button class="sub-back" onclick="S.sTab='main';render()">◀ 返回設定</button><div style="font-size:15px;font-weight:700;margin-bottom:12px">📦 資料管理</div><div style="color:${t.dimmer};font-size:12px;margin-bottom:10px">目前共有 ${S.tx.length} 筆紀錄</div>
+        <label class="label" style="color:${t.dim}">匯出範圍</label>
+        <select class="inp" id="exp-range" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:14px">
+          <option value="current">當月紀錄</option>
+          <option value="all">全部紀錄</option>
+        </select>
+        <div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">匯出格式</div>
+        <div class="e-grid-3">
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('json')"><span style="font-size:18px">💾</span><span style="font-size:11px;font-weight:600">JSON</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('csv')"><span style="font-size:18px">📊</span><span style="font-size:11px;font-weight:600">CSV</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('markdown')"><span style="font-size:18px">📝</span><span style="font-size:11px;font-weight:600">Markdown</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('xlsx')"><span style="font-size:18px">📗</span><span style="font-size:11px;font-weight:600">Excel</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('docx')"><span style="font-size:18px">📘</span><span style="font-size:11px;font-weight:600">Word</span></button>
+          <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="doExp('pdf')"><span style="font-size:18px">📕</span><span style="font-size:11px;font-weight:600">PDF</span></button>
+        </div>
+        <div style="border-top:1px solid ${t.border};margin-top:14px;padding-top:14px">
+          <div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">資料備份</div>
+          <div class="e-grid">
+            <button class="e-btn" style="background:${t.input};border-color:${t.ib};color:${t.dim}" onclick="impJSON()"><span style="font-size:18px">📥</span><span style="font-size:11px;font-weight:600">匯入備份</span><span style="font-size:9px">還原資料</span></button>
+            <button class="e-btn" style="background:${t.input};border-color:#ff6b6b44;color:${t.dim}" onclick="resetAll()"><span style="font-size:18px">🗑️</span><span style="font-size:11px;font-weight:600;color:#ff6b6b">清除資料</span><span style="font-size:9px">全部刪除</span></button>
+          </div>
+        </div></div>`;
+    }
+  }
+
+  document.getElementById("content").innerHTML=html;
+}
+
+// ─── Actions ───
+function addTx(){
+  const f=S.af;if(!f.amount||Number(f.amount)<=0){toast("請輸入有效金額");return}
+  S.tx.unshift({id:gId(),type:f.type,amount:Math.round(Number(f.amount)),category:f.type==="expense"?f.category:"income",account:f.account,note:f.note,date:f.date});
+  S.af={type:"expense",amount:"",category:"food",account:"cash",note:"",date:new Date().toISOString().slice(0,10)};
+  save();toast("已新增！");S.view="dashboard";render();
+}
+function delTx(id){S.tx=S.tx.filter(x=>x.id!==id);save();toast("已刪除");render()}
+function addCat(){if(!S.newCat.label.trim()){toast("請輸入類別名稱");return}S.cats.push({id:gId(),label:S.newCat.label.trim(),icon:S.newCat.icon,color:S.newCat.color});S.newCat={label:"",icon:"🏠",color:"#E8590C"};save();toast("類別已新增！");render()}
+function addAcc(){const n=document.getElementById("newAccN");if(!n.value.trim()){toast("請輸入名稱");return}S.accounts.push({id:gId(),label:n.value.trim(),icon:"💳"});n.value="";save();toast("帳戶已新增！");render()}
+function addGoal(){if(!S.newGoal.name||!S.newGoal.target||Number(S.newGoal.target)<=0){toast("請填寫目標名稱和金額");return}S.goals.push({id:gId(),name:S.newGoal.name,target:Math.round(Number(S.newGoal.target)),saved:Math.round(Number(S.newGoal.saved)||0)});S.newGoal={name:"",target:"",saved:""};save();toast("目標已建立！");render()}
+function updGoal(id,dir){const amt=prompt(dir>0?"存入金額：":"取出金額：");if(amt&&Number(amt)>0){S.goals=S.goals.map(g=>g.id===id?{...g,saved:Math.max(0,g.saved+dir*Math.round(Number(amt)))}:g);save();render()}}
+function addFixed(){if(!S.newFixed.name||!S.newFixed.amount||Number(S.newFixed.amount)<=0){toast("請填寫名稱和金額");return}S.fixed.push({id:gId(),name:S.newFixed.name,amount:Math.round(Number(S.newFixed.amount)),category:S.newFixed.category,day:S.newFixed.day});S.newFixed={name:"",amount:"",category:"bills",day:"1"};save();toast("固定支出已新增！");render()}
+function qkFixed(id){const f=S.fixed.find(x=>x.id===id);if(!f)return;S.tx.unshift({id:gId(),type:"expense",amount:f.amount,category:f.category,account:"bank",note:f.name,date:new Date().toISOString().slice(0,10)});save();toast(`已記錄「${f.name}」`);render()}
+
+// ─── Export via ExportManager ───
+async function doExp(format){
+  const data=getExportData();
+  if(!data.transactions.length){toast("沒有資料");return}
+  try{
+    await ExportManager.doExport(format,data);
+    toast(`${format.toUpperCase()} 已下載！`);
+  }catch(e){console.error(e);toast("匯出失敗："+e.message)}
+}
+
+// ─── Import / Reset ───
+function dl(c,ty,nm){const b=new Blob([c],{type:ty}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=nm;a.click();URL.revokeObjectURL(u)}
+function impJSON(){const i=document.createElement("input");i.type="file";i.accept=".json";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.transactions){S.tx=d.transactions;if(d.budget)S.budget=d.budget;if(d.categories)S.cats=d.categories;if(d.accounts)S.accounts=d.accounts;if(d.goals)S.goals=d.goals;if(d.fixedExpenses)S.fixed=d.fixedExpenses;save();toast(`已匯入 ${d.transactions.length} 筆！`);render()}else toast("格式錯誤")}catch{toast("匯入失敗")}};r.readAsText(f)};i.click()}
+function resetAll(){if(confirm("確定要清除所有資料嗎？")){S.tx=[];S.budget=0;S.goals=[];S.fixed=[];S.cats=DC.slice();S.accounts=DA.slice();["mm2-tx","mm2-budget","mm2-cats","mm2-accounts","mm2-goals","mm2-fixed"].forEach(k=>localStorage.removeItem(k));toast("已清除");render()}}
+
+render();
+</script>
+</body>
+</html>
