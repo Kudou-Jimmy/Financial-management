@@ -128,7 +128,12 @@ function save(){
 }
 
 // ═══ 跨分頁同步：從 localStorage 重新撈取薪資計算機寫入的資料 ═══
+let _lastSyncAt=0;
 function syncFromStorage(silent){
+  // 節流：1 秒內最多執行一次，避免 iOS 滑動時 focus 事件頻繁觸發導致卡頓
+  const now=Date.now();
+  if(now-_lastSyncAt<1000)return;
+  _lastSyncAt=now;
   const raw=localStorage.getItem("mm2-tx");
   if(!raw)return;
   let incoming;try{incoming=JSON.parse(raw)}catch(e){return}
@@ -154,7 +159,6 @@ window.addEventListener("storage",function(e){
 document.addEventListener("visibilitychange",function(){
   if(!document.hidden)syncFromStorage();
 });
-window.addEventListener("focus",function(){syncFromStorage()});
 window.addEventListener("pageshow",function(){syncFromStorage(true)});
 function gId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function gMK(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
