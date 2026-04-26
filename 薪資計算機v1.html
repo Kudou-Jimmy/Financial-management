@@ -47,7 +47,7 @@
       --bg: #F3F8FC;
       --bg-secondary: #E6F0F8;
       --card-bg: #FFFFFF;
-      --glass: rgba(255,255,255,0.78);
+      --glass: rgba(255,255,255,0.95);
       --glass-border: rgba(255,255,255,0.5);
       --text: #1E3A50;
       --text-secondary: #6B8CA8;
@@ -124,9 +124,7 @@
       display: flex; align-items: center; gap: 6px;
     }
     #month-nav button {
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: rgba(255,255,255,0.25);
       border: 1px solid rgba(255,255,255,0.15);
       color: white;
       width: 34px; height: 34px;
@@ -165,8 +163,6 @@
       position: fixed; bottom: 0; left: 0; right: 0;
       z-index: 100;
       background: var(--glass);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
       border-top: 1px solid var(--glass-border);
       display: flex;
       height: calc(var(--nav-height) + var(--safe-bottom));
@@ -774,9 +770,7 @@
       display: none;
       position: fixed; inset: 0;
       z-index: 200;
-      background: rgba(0,0,0,0.45);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: rgba(0,0,0,0.6);
       align-items: flex-end;
       justify-content: center;
     }

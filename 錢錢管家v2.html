@@ -125,6 +125,8 @@ function toast(m){const t=document.getElementById("toast");t.textContent=m;t.cla
 
 function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));render()}
 function setView(v){S.view=v;if(v==="settings")S.sTab="main";render()}
+let _searchTimer;
+function debouncedSearch(v){S.search=v;clearTimeout(_searchTimer);_searchTimer=setTimeout(()=>render(),250)}
 
 function T(){
   const d=S.dark;
@@ -259,13 +261,15 @@ function render(){
   // ═══ HISTORY ═══
   else if(S.view==="history"){
     const q=S.search.toLowerCase();
-    const filtered=mTx.filter(x=>{if(!q)return true;const c=S.cats.find(c=>c.id===x.category);return(x.note||"").toLowerCase().includes(q)||(c?.label||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const catMap=new Map(S.cats.map(c=>[c.id,c]));
+    const accMap=new Map(S.accounts.map(a=>[a.id,a]));
+    const filtered=mTx.filter(x=>{if(!q)return true;const c=catMap.get(x.category);return(x.note||"").toLowerCase().includes(q)||(c?.label||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
     let rows=filtered.map(x=>{
-      const c=S.cats.find(c=>c.id===x.category);const a=S.accounts.find(a=>a.id===x.account);
+      const c=catMap.get(x.category);const a=accMap.get(x.account);
       return `<div class="tx-row" style="border-bottom:1px solid ${t.border}"><div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0"><div class="tx-icon" style="background:${x.type==='income'?'#51cf6622':(c?.color||'#666')+'22'}">${x.type==='income'?'💰':c?.icon||'📌'}</div><div style="min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.type==='income'?'收入':c?.label||'其他'}${x.note?`<span style="color:${t.dim};font-weight:400"> · ${x.note}</span>`:''}</div><div style="font-size:10px;color:${t.dimmer}">${fD(x.date)}${a?' · '+a.icon+a.label:''}</div></div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700;color:${x.type==='income'?'#51cf66':'#ff6b6b'}">${x.type==='income'?'+':'-'}$${fN(x.amount)}</span><button class="del-btn" style="color:${t.dimmer}" onclick="delTx('${x.id}')">✕</button></div></div>`;
     }).join("");
     html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">${MN[cm-1]}明細 (${mTx.length} 筆)</div>
-      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋備註或類別..." value="${S.search}" oninput="S.search=this.value;render()">
+      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋備註或類別..." value="${S.search}" oninput="debouncedSearch(this.value)">
       ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows}
     </div>`;
   }
