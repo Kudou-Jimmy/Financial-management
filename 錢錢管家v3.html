@@ -127,22 +127,35 @@ function save(){
   localStorage.setItem("mm2-dark",JSON.stringify(S.dark));
 }
 
-// ═══ 跨分頁同步：監聽薪資計算機寫入的資料 ═══
+// ═══ 跨分頁同步：從 localStorage 重新撈取薪資計算機寫入的資料 ═══
+function syncFromStorage(silent){
+  const raw=localStorage.getItem("mm2-tx");
+  if(!raw)return;
+  let incoming;try{incoming=JSON.parse(raw)}catch(e){return}
+  if(!Array.isArray(incoming))return;
+  const existIds=new Set(S.tx.map(t=>t.id));
+  const newItems=incoming.filter(t=>t&&t.id&&!existIds.has(t.id));
+  if(newItems.length){
+    S.tx=newItems.concat(S.tx);
+    save();render();
+    if(!silent)toast("已同步 "+newItems.length+" 筆薪資紀錄");
+  }
+  // 同步主題
+  const darkRaw=localStorage.getItem("mm2-dark");
+  if(darkRaw!=null){
+    try{const d=JSON.parse(darkRaw);if(d!==S.dark){S.dark=d;render()}}catch(e){}
+  }
+}
+// 桌面瀏覽器：跨分頁即時同步
 window.addEventListener("storage",function(e){
-  if(e.key==="mm2-tx"&&e.newValue){
-    const incoming=JSON.parse(e.newValue);
-    const existIds=new Set(S.tx.map(t=>t.id));
-    const newItems=incoming.filter(t=>!existIds.has(t.id));
-    if(newItems.length){
-      S.tx=newItems.concat(S.tx);
-      save();render();
-      toast("已同步 "+newItems.length+" 筆薪資紀錄");
-    }
-  }
-  if(e.key==="mm2-dark"&&e.newValue!=null){
-    S.dark=JSON.parse(e.newValue);render();
-  }
+  if(e.key==="mm2-tx"||e.key==="mm2-dark")syncFromStorage();
 });
+// 手機 / PWA：切回 App 時重新讀取 localStorage（最可靠）
+document.addEventListener("visibilitychange",function(){
+  if(!document.hidden)syncFromStorage();
+});
+window.addEventListener("focus",function(){syncFromStorage()});
+window.addEventListener("pageshow",function(){syncFromStorage(true)});
 function gId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function gMK(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 function fN(n){return n.toLocaleString("zh-TW")}
