@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="財務管理">
+<meta name="theme-color" content="#111111">
+<title>財務管理</title>
+<link rel="manifest" href="./manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Noto Sans TC',-apple-system,'Helvetica Neue',sans-serif;
+  background:#111;color:#e0e0e0;
+  min-height:100vh;min-height:100dvh;
+  max-width:480px;margin:0 auto;
+  padding:env(safe-area-inset-top) 20px calc(20px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  gap:24px;
+}
+.title{font-size:26px;font-weight:800;text-align:center;margin-bottom:6px;background:linear-gradient(135deg,#339af0,#20c997);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{font-size:13px;color:#888;text-align:center;margin-bottom:8px}
+.app-list{display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px}
+.app-card{
+  display:flex;align-items:center;gap:14px;
+  padding:18px 20px;
+  background:#1a1a1a;border:1px solid #2a2a2a;border-radius:14px;
+  text-decoration:none;color:#e0e0e0;
+  transition:transform .15s,border-color .15s;
+}
+.app-card:active{transform:scale(0.98);border-color:#339af0}
+.app-icon{
+  width:48px;height:48px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;border-radius:12px;
+}
+.icon-salary{background:linear-gradient(135deg,#51cf6622,#20c99722);color:#51cf66}
+.icon-money{background:linear-gradient(135deg,#339af022,#5c7cfa22);color:#339af0}
+.app-info{flex:1;min-width:0}
+.app-name{font-size:15px;font-weight:700;margin-bottom:3px}
+.app-desc{font-size:11px;color:#888;line-height:1.4}
+.app-arrow{font-size:18px;color:#555}
+.legacy{margin-top:16px;width:100%;max-width:360px}
+.legacy-title{font-size:11px;color:#555;text-align:center;margin-bottom:8px}
+.legacy-row{display:flex;gap:8px}
+.legacy-link{
+  flex:1;padding:8px;text-align:center;font-size:11px;
+  color:#666;text-decoration:none;
+  background:#161616;border:1px solid #222;border-radius:8px;
+}
+.footer{font-size:10px;color:#444;text-align:center;margin-top:24px;line-height:1.6}
+.footer a{color:#666;text-decoration:none}
+@media (prefers-color-scheme:light){
+  body{background:#f5f5f5;color:#1a1a1a}
+  .subtitle{color:#666}
+  .app-card{background:#fff;border-color:#e0e0e0}
+  .app-desc{color:#666}
+  .app-arrow{color:#aaa}
+  .legacy-title{color:#888}
+  .legacy-link{background:#fff;border-color:#e0e0e0;color:#888}
+  .footer{color:#888}
+  .footer a{color:#666}
+}
+</style>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js').catch(()=>{})})}</script>
+</head>
+<body>
+  <div>
+    <div class="title">財務管理</div>
+    <div class="subtitle">薪資計算 · 日常記帳</div>
+  </div>
+
+  <div class="app-list">
+    <a href="./薪資計算機v2.html" class="app-card">
+      <div class="app-icon icon-salary">💼</div>
+      <div class="app-info">
+        <div class="app-name">薪資計算機</div>
+        <div class="app-desc">時薪 / 堂薪 / 日薪　多工作管理</div>
+      </div>
+      <div class="app-arrow">›</div>
+    </a>
+
+    <a href="./錢錢管家v3.html" class="app-card">
+      <div class="app-icon icon-money">💰</div>
+      <div class="app-info">
+        <div class="app-name">錢錢管家</div>
+        <div class="app-desc">收支記帳 · 預算 · 儲蓄目標</div>
+      </div>
+      <div class="app-arrow">›</div>
+    </a>
+  </div>
+
+  <div class="legacy">
+    <div class="legacy-title">舊版（保留參考）</div>
+    <div class="legacy-row">
+      <a href="./薪資計算機v1.html" class="legacy-link">薪資計算機 v1</a>
+      <a href="./錢錢管家v2.html" class="legacy-link">錢錢管家 v2</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://github.com/Kudou-Jimmy/Financial-management" target="_blank">GitHub</a> · 離線可用 PWA
+  </div>
+</body>
+</html>
