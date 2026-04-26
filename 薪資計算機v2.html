@@ -39,7 +39,7 @@ body.light{background:#f5f5f5;color:#1a1a1a}
 .tog-row{display:flex;gap:6px}
 .tog-btn{flex:1;padding:9px 0;border-radius:9px;border:1px solid;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
 .add-btn{width:100%;margin-top:16px;padding:12px 0;border-radius:10px;border:none;background:linear-gradient(135deg,#339af0,#20c997);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.tx-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.tx-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;contain:layout style}
 .tx-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .del-btn{background:none;border:none;font-size:13px;cursor:pointer;padding:3px 5px;border-radius:6px}
 .p-bg{height:7px;border-radius:4px;overflow:hidden}
@@ -123,6 +123,8 @@ function updateSessionPreview(){
   const el=document.getElementById("payPreviewAmt");
   if(el&&j)el.textContent="$"+fN(Math.round((f.sessions||0)*j.rate));
 }
+let _searchTimer;
+function debouncedSearch(v){S.search=v;clearTimeout(_searchTimer);_searchTimer=setTimeout(()=>render(),250)}
 
 function calcPay(job,rec){
   if(!job)return 0;
@@ -360,16 +362,17 @@ function render(){
   // ═══ HISTORY ═══
   else if(S.view==="history"){
     const q=S.search.toLowerCase();
-    const filtered=mRecs.filter(x=>{if(!q)return true;const j=S.jobs.find(j=>j.id===x.jobId);return(x.notes||"").toLowerCase().includes(q)||(j?.name||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const jobMap=new Map(S.jobs.map(j=>[j.id,j]));
+    const filtered=mRecs.filter(x=>{if(!q)return true;const j=jobMap.get(x.jobId);return(x.notes||"").toLowerCase().includes(q)||(j?.name||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
     let rows=filtered.map(x=>{
-      const j=S.jobs.find(j=>j.id===x.jobId);
+      const j=jobMap.get(x.jobId);
       const jName=j?.name||"未知";const jColor=j?.color||"#868E96";
       const info=j?.billingType==="hourly"?formatDuration(x.durationMinutes-(x.breakMinutes||0)):j?.billingType==="perSession"?x.sessions+"堂":"日薪";
       const syncTag=x.syncedToMM?`<span class="sync-tag">已同步</span>`:"";
       return `<div class="tx-row" style="border-bottom:1px solid ${t.border}"><div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0"><div style="width:34px;height:34px;border-radius:50%;background:${jColor}22;color:${jColor};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${jName.charAt(0)}</div><div style="min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${jName}${syncTag}${x.notes?`<span style="color:${t.dim};font-weight:400"> · ${x.notes}</span>`:''}</div><div style="font-size:10px;color:${t.dimmer}">${fD(x.date)} · ${info}</div></div></div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700;color:#51cf66">+$${fN(x.calculatedPay)}</span><button class="del-btn" style="color:${t.dimmer}" onclick="delRecord('${x.id}',${x.syncedToMM?'true':'false'})">✕</button></div></div>`;
     }).join("");
     html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">${MN[cm-1]}明細 (${mRecs.length} 筆)</div>
-      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋工作或備註..." value="${S.search}" oninput="S.search=this.value;render()">
+      <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋工作或備註..." value="${S.search}" oninput="debouncedSearch(this.value)">
       ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows}
     </div>`;
   }
