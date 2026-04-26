@@ -1,8 +1,8 @@
 {
-  "name": "錢錢管家",
-  "short_name": "錢錢管家",
+  "name": "財務管理",
+  "short_name": "財務管理",
   "description": "薪資計算機 + 記帳程式組合應用",
-  "start_url": "./錢錢管家v3.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#111111",

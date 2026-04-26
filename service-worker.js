@@ -6,6 +6,7 @@ const CACHE_NAME = 'fm-cache-v1';
 // 預先快取的核心資源
 const CORE_ASSETS = [
   './',
+  './index.html',
   './薪資計算機v1.html',
   './薪資計算機v2.html',
   './錢錢管家v2.html',
@@ -61,7 +62,7 @@ self.addEventListener('fetch', event => {
       }).catch(() => {
         // 完全離線且無快取：fallback 到首頁
         if (event.request.mode === 'navigate') {
-          return caches.match('./錢錢管家v3.html');
+          return caches.match('./index.html');
         }
       });
     })
