@@ -118,6 +118,11 @@ function T(){
 function applyTheme(){document.body.className=S.dark?"dark":"light";document.querySelector('meta[name=theme-color]').content=S.dark?"#111111":"#f5f5f5"}
 function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));render()}
 function setView(v){S.view=v;if(v==="settings")S.sTab="main";render()}
+function updateSessionPreview(){
+  const f=S.af,j=S.jobs.find(x=>x.id===f.jobId);
+  const el=document.getElementById("payPreviewAmt");
+  if(el&&j)el.textContent="$"+fN(Math.round((f.sessions||0)*j.rate));
+}
 
 function calcPay(job,rec){
   if(!job)return 0;
@@ -341,10 +346,10 @@ function render(){
           <div style="margin-top:10px;font-size:11px;color:${t.dim}">工作時長：${formatDuration(Math.max(0,timeDiff(f.startTime,f.endTime)-(f.breakMinutes||0)))}</div>`;
       }else if(selJob&&selJob.billingType==="perSession"){
         html+=`<label class="label" style="color:${t.dim}">堂數</label>
-          <input type="number" inputmode="numeric" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${f.sessions}" min="1" oninput="S.af.sessions=Math.max(1,Number(this.value)||1);render()">`;
+          <input type="number" inputmode="decimal" step="0.5" min="0.5" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" value="${f.sessions}" oninput="S.af.sessions=Math.max(0.5,Number(this.value)||0.5);updateSessionPreview()" onchange="render()">`;
       }
 
-      html+=`<div style="margin-top:14px;text-align:center;padding:10px;border-radius:9px;background:${t.input}"><div style="font-size:10px;color:${t.dim};margin-bottom:2px">預計薪資</div><div style="font-size:28px;font-weight:800;color:#51cf66">$${fN(payPreview)}</div></div>
+      html+=`<div style="margin-top:14px;text-align:center;padding:10px;border-radius:9px;background:${t.input}"><div style="font-size:10px;color:${t.dim};margin-bottom:2px">預計薪資</div><div id="payPreviewAmt" style="font-size:28px;font-weight:800;color:#51cf66">$${fN(payPreview)}</div></div>
         <label class="label" style="color:${t.dim}">備註（選填）</label>
         <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text}" placeholder="例：加班" value="${f.notes||''}" oninput="S.af.notes=this.value">
         <button class="add-btn" onclick="addRecord()">✅ 新增</button>
