@@ -1,0 +1,12 @@
+# Netlify HTTP headers
+# 強制 service worker 永遠不被 HTTP 快取，確保更新即時生效
+/service-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# manifest 短快取
+/manifest.json
+  Cache-Control: public, max-age=300
+
+# HTML 短快取（讓 SW 的 network-first 真的能拿到新版）
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
