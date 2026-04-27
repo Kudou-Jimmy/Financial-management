@@ -214,8 +214,8 @@ const ExportManager={
   }
 };
 
-function getExportData(){
-  const range=document.getElementById("exp-range")?.value||"all";
+function getExportData(forceAll){
+  const range=forceAll?"all":(document.getElementById("exp-range")?.value||"all");
   let tx=S.tx;
   if(range==="current")tx=tx.filter(x=>gMK(new Date(x.date))===S.month);
   return{transactions:tx.sort((a,b)=>a.date.localeCompare(b.date)),categories:S.cats,accounts:S.accounts,budget:S.budget,goals:S.goals,fixedExpenses:S.fixed};
@@ -531,10 +531,10 @@ function render(){
     }
     else if(S.sTab==="data"){
       html+=`<div class="card" style="background:${t.card}"><button class="sub-back" onclick="S.sTab='main';render()">◀ 返回設定</button><div style="font-size:15px;font-weight:700;margin-bottom:12px">📦 資料管理</div><div style="color:${t.dimmer};font-size:12px;margin-bottom:10px">目前共有 ${S.tx.length} 筆紀錄</div>
-        <label class="label" style="color:${t.dim}">匯出範圍</label>
+        <label class="label" style="color:${t.dim}">匯出範圍（JSON 備份不受此限制，永遠匯出全部）</label>
         <select class="inp" id="exp-range" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:14px">
-          <option value="current">當月紀錄</option>
           <option value="all">全部紀錄</option>
+          <option value="current">當月紀錄</option>
         </select>
         <div style="font-size:12px;font-weight:600;color:${t.dim};margin-bottom:8px">匯出格式</div>
         <div class="e-grid-3">
@@ -575,7 +575,8 @@ function qkFixed(id){const f=S.fixed.find(x=>x.id===id);if(!f)return;S.tx.unshif
 
 // ─── Export via ExportManager ───
 async function doExp(format){
-  const data=getExportData();
+  // JSON 永遠匯出全部（備份用），其他格式遵循使用者選擇
+  const data=getExportData(format==="json");
   if(!data.transactions.length){toast("沒有資料");return}
   try{
     await ExportManager.doExport(format,data);
