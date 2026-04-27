@@ -75,7 +75,7 @@ body.light{--tx-border:#e0e0e0;--tx-meta:#aaa}
 select.inp{-webkit-appearance:none;appearance:none}
 </style>
 <link rel="manifest" href="./manifest.json">
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js').catch(()=>{})})}</script>
+<script>if('serviceWorker' in navigator){const hadCtrl=!!navigator.serviceWorker.controller;window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js').catch(()=>{});if(hadCtrl)navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload())})}</script>
 </head>
 <body class="dark">
 <div class="toast" id="toast"></div>
