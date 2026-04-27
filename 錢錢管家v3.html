@@ -125,6 +125,7 @@ const S={
   month:gMK(new Date()),
   search:"",
   sTab:"main",
+  historyLimit:30,
   af:{type:"expense",amount:"",category:"food",account:"cash",note:"",date:new Date().toISOString().slice(0,10)},
   newCat:{label:"",icon:"🏠",color:"#E8590C"},
   newGoal:{name:"",target:"",saved:""},
@@ -180,8 +181,8 @@ function fN(n){return n.toLocaleString("zh-TW")}
 function fD(iso){const d=new Date(iso);return `${d.getMonth()+1}/${d.getDate()}`}
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2000)}
 
-function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));render()}
-function setView(v){S.view=v;if(v==="settings")S.sTab="main";render()}
+function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));S.historyLimit=30;render()}
+function setView(v){S.view=v;if(v==="settings")S.sTab="main";if(v==="history")S.historyLimit=30;render()}
 
 function T(){
   const d=S.dark;
@@ -192,7 +193,7 @@ function T(){
 
 function applyTheme(){document.body.className=S.dark?"dark":"light";document.querySelector('meta[name=theme-color]').content=S.dark?"#111111":"#f5f5f5"}
 let _searchTimer;
-function debouncedSearch(v){S.search=v;clearTimeout(_searchTimer);_searchTimer=setTimeout(()=>render(),250)}
+function debouncedSearch(v){S.search=v;S.historyLimit=30;clearTimeout(_searchTimer);_searchTimer=setTimeout(()=>render(),250)}
 
 // ═══════════════════════════════════════
 // ExportManager — plugin-style exporters
@@ -460,16 +461,21 @@ function render(){
     const q=S.search.toLowerCase();
     const catMap=new Map(S.cats.map(c=>[c.id,c]));
     const accMap=new Map(S.accounts.map(a=>[a.id,a]));
-    const filtered=mTx.filter(x=>{if(!q)return true;const c=catMap.get(x.category);return(x.note||"").toLowerCase().includes(q)||(c?.label||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    let rows=filtered.map(x=>{
+    const filtered=mTx.filter(x=>{if(!q)return true;const c=catMap.get(x.category);return(x.note||"").toLowerCase().includes(q)||(c?.label||"").toLowerCase().includes(q)}).sort((a,b)=>b.date.localeCompare(a.date));
+    // 分頁：一次只渲染 historyLimit 筆，避免大量 DOM 卡頓
+    const limit=S.historyLimit||30;
+    const sliced=filtered.slice(0,limit);
+    const remain=filtered.length-sliced.length;
+    let rows=sliced.map(x=>{
       const c=catMap.get(x.category);const a=accMap.get(x.account);
       const isSynced=x.note&&x.note.startsWith("[薪資]");
       const syncTag=isSynced?`<span class="sync-tag">薪資計算機</span>`:"";
       return `<div class="tx-row"><div class="tx-left"><div class="tx-icon" style="background:${x.type==='income'?'#51cf6622':(c?.color||'#666')+'22'}">${x.type==='income'?'💰':c?.icon||'📌'}</div><div class="tx-text"><div class="tx-title">${x.type==='income'?'收入':c?.label||'其他'}${syncTag}${x.note?`<span class="tx-dim" style="color:${t.dim}"> · ${isSynced?x.note.slice(4):x.note}</span>`:''}</div><div class="tx-meta">${fD(x.date)}${a?' · '+a.icon+a.label:''}</div></div></div><div class="tx-right"><span class="tx-amt" style="color:${x.type==='income'?'#51cf66':'#ff6b6b'}">${x.type==='income'?'+':'-'}$${fN(x.amount)}</span><button class="del-btn" onclick="delTx('${x.id}')">✕</button></div></div>`;
     }).join("");
+    const moreBtn=remain>0?`<button class="add-btn" style="margin-top:10px" onclick="S.historyLimit=(S.historyLimit||30)+30;render()">顯示更多（剩 ${remain} 筆）</button>`:'';
     html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">${MN[cm-1]}明細 (${mTx.length} 筆)</div>
       <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋備註或類別..." value="${S.search}" oninput="debouncedSearch(this.value)">
-      ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows}
+      ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows+moreBtn}
     </div>`;
   }
 

@@ -112,6 +112,7 @@ const S={
   month:gMK(new Date()),
   search:"",
   sTab:"main",
+  historyLimit:30,
   af:{jobId:"",date:new Date().toISOString().slice(0,10),startTime:"09:00",endTime:"18:00",breakMinutes:60,sessions:1,notes:""},
   newJob:{name:"",billingType:"hourly",rate:"",color:"#339AF0",sessionDurationMinutes:""},
   editJobId:null
@@ -130,8 +131,8 @@ function T(){
     w:d?"#fff":"#1a1a1a",toast:d?"#2d2d2d":"#333",niA:d?"#1e1e1e":"#e8e8e8"};
 }
 function applyTheme(){document.body.className=S.dark?"dark":"light";document.querySelector('meta[name=theme-color]').content=S.dark?"#111111":"#f5f5f5"}
-function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));render()}
-function setView(v){S.view=v;if(v==="settings")S.sTab="main";render()}
+function chMonth(dir){const[y,m]=S.month.split("-").map(Number);S.month=gMK(new Date(y,m-1+dir,1));S.historyLimit=30;render()}
+function setView(v){S.view=v;if(v==="settings")S.sTab="main";if(v==="history")S.historyLimit=30;render()}
 function updateSessionPreview(){
   const f=S.af,j=S.jobs.find(x=>x.id===f.jobId);
   const el=document.getElementById("payPreviewAmt");
@@ -148,7 +149,7 @@ function updateHourlyPreview(){
   if(pe)pe.textContent="$"+fN(Math.round(net/60*j.rate));
 }
 let _searchTimer;
-function debouncedSearch(v){S.search=v;clearTimeout(_searchTimer);_searchTimer=setTimeout(()=>render(),250)}
+function debouncedSearch(v){S.search=v;S.historyLimit=30;clearTimeout(_searchTimer);_searchTimer=setTimeout(()=>render(),250)}
 
 function calcPay(job,rec){
   if(!job)return 0;
@@ -387,17 +388,22 @@ function render(){
   else if(S.view==="history"){
     const q=S.search.toLowerCase();
     const jobMap=new Map(S.jobs.map(j=>[j.id,j]));
-    const filtered=mRecs.filter(x=>{if(!q)return true;const j=jobMap.get(x.jobId);return(x.notes||"").toLowerCase().includes(q)||(j?.name||"").toLowerCase().includes(q)}).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    let rows=filtered.map(x=>{
+    const filtered=mRecs.filter(x=>{if(!q)return true;const j=jobMap.get(x.jobId);return(x.notes||"").toLowerCase().includes(q)||(j?.name||"").toLowerCase().includes(q)}).sort((a,b)=>b.date.localeCompare(a.date));
+    // 分頁：一次只渲染 historyLimit 筆，避免大量 DOM 卡頓
+    const limit=S.historyLimit||30;
+    const sliced=filtered.slice(0,limit);
+    const remain=filtered.length-sliced.length;
+    let rows=sliced.map(x=>{
       const j=jobMap.get(x.jobId);
       const jName=j?.name||"未知";const jColor=j?.color||"#868E96";
       const info=j?.billingType==="hourly"?formatDuration(x.durationMinutes-(x.breakMinutes||0)):j?.billingType==="perSession"?x.sessions+"堂":"日薪";
       const syncTag=x.syncedToMM?`<span class="sync-tag">已同步</span>`:"";
       return `<div class="tx-row"><div class="tx-left"><div class="tx-circle" style="background:${jColor}22;color:${jColor}">${jName.charAt(0)}</div><div class="tx-text"><div class="tx-title">${jName}${syncTag}${x.notes?`<span style="color:${t.dim};font-weight:400"> · ${x.notes}</span>`:''}</div><div class="tx-meta">${fD(x.date)} · ${info}</div></div></div><div class="tx-right"><span class="tx-amt" style="color:#51cf66">+$${fN(x.calculatedPay)}</span><button class="del-btn" onclick="delRecord('${x.id}',${x.syncedToMM?'true':'false'})">✕</button></div></div>`;
     }).join("");
+    const moreBtn=remain>0?`<button class="add-btn" style="margin-top:10px" onclick="S.historyLimit=(S.historyLimit||30)+30;render()">顯示更多（剩 ${remain} 筆）</button>`:'';
     html+=`<div class="card" style="background:${t.card}"><div style="font-size:15px;font-weight:700;margin-bottom:12px">${MN[cm-1]}明細 (${mRecs.length} 筆)</div>
       <input type="text" class="inp" style="background:${t.input};border-color:${t.ib};color:${t.text};margin-bottom:10px" placeholder="🔍 搜尋工作或備註..." value="${S.search}" oninput="debouncedSearch(this.value)">
-      ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows}
+      ${filtered.length===0?`<div style="color:${t.dimmer};text-align:center;padding:24px">${S.search?'找不到相關紀錄':'本月暫無紀錄'}</div>`:rows+moreBtn}
     </div>`;
   }
 
